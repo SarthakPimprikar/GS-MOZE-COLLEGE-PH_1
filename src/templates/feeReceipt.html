@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            background: white;
+            padding: 20px;
+        }
+        
+        .receipt {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 2px solid #333;
+            padding: 18px;
+            background: white;
+            font-size: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 18px;
+            margin-bottom: 18px;
+        }
+        
+        .school-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        
+        .school-logo {
+            width: 65px;
+            height: 65px;
+            margin-right: 18px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .school-info {
+            text-align: left;
+        }
+        
+        .school-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #333;
+        }
+        
+        .school-address {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        
+        .school-contact {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .receipt-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            font-size: 12px;
+        }
+        
+        .section-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .student-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 18px;
+            font-size: 11px;
+        }
+        
+        .student-info p {
+            margin: 4px 0;
+            font-size: 11px;
+        }
+        
+        .student-info strong {
+            font-weight: bold;
+        }
+        
+        .fee-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 11px;
+        }
+        
+        .fee-table th,
+        .fee-table td {
+            border: 1px solid #333;
+            padding: 6px;
+            text-align: left;
+            font-size: 11px;
+        }
+        
+        .fee-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        .fee-table .amount {
+            text-align: right;
+        }
+        
+        .fee-table .total {
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }
+        
+        .payment-details {
+            margin-top: 18px;
+            font-size: 11px;
+        }
+        
+        .payment-details p {
+            margin: 4px 0;
+            font-size: 11px;
+        }
+        
+        .payment-details strong {
+            font-weight: bold;
+        }
+        
+        .amount-in-words {
+            margin: 18px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        
+        .amount-in-words p {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 18px;
+            border-top: 1px solid #333;
+        }
+        
+        .footer p {
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 35px;
+        }
+        
+        .signature-box {
+            text-align: center;
+            min-width: 130px;
+        }
+        
+        .signature-line {
+            border-bottom: 1px solid #333;
+            margin: 25px 0 4px 0;
+        }
+        
+        .signature-label {
+            font-size: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            <div class="school-header">
+                <div class="school-logo">
+                    <svg width="65" height="65" viewBox="0 0 65 65" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="32.5" cy="32.5" r="30" fill="#1e40af" stroke="#1e3a8a" stroke-width="2"/>
+                        <text x="32.5" y="30" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">DPS</text>
+                        <text x="32.5" y="42" font-family="Arial, sans-serif" font-size="6" fill="white" text-anchor="middle">SCHOOL</text>
+                    </svg>
+                </div>
+                <div class="school-info">
+                    <div class="school-name">Dnyaneshwari Primary and Secondary School</div>
+                    <div class="school-address">Mumbai - 400 037, Maharashtra, India</div>
+                    <div class="school-contact">Tel: +91-XXXX-XXXX | Email: info@dnyaneshwari.edu.in | Website: www.dnyaneshwari.edu.in</div>
+                </div>
+            </div>
+            <h1>FEE RECEIPT</h1>
+        </div>
+        
+        <div class="receipt-details">
+            <p><strong>Receipt No:</strong> {{receiptNumber}}</p>
+            <p><strong>Date:</strong> {{date}}</p>
+        </div>
+        
+        <div class="section-title">Student Details</div>
+        <div class="student-info">
+            <div>
+                <p><strong>Student Name:</strong> {{student.fullName}}</p>
+                <p><strong>Student ID:</strong> {{student.studentId}}</p>
+                <p><strong>Program Type:</strong> {{student.programType}}</p>
+                <p><strong>Branch:</strong> {{student.branch}}</p>
+                <p><strong>Current Year:</strong> {{student.currentYear}}</p>
+                <p><strong>Roll Number (PRN):</strong> {{student.prn}}</p>
+            </div>
+            <div>
+                <p><strong>Gender:</strong> {{student.gender}}</p>
+                <p><strong>Date of Birth:</strong> {{student.dateOfBirth}}</p>
+                <p><strong>Phone Number:</strong> {{student.mobileNumber}}</p>
+                <p><strong>Email:</strong> {{student.email}}</p>
+                <p><strong>Admission Year:</strong> {{student.admissionYear}}</p>
+                <p><strong>Admission Type:</strong> {{student.admissionType}}</p>
+                <p><strong>Fees Category:</strong> {{student.feesCategory}}</p>
+                <p><strong>Division:</strong> {{student.division}}</p>
+            </div>
+        </div>
+        
+        <div class="section-title">Fee Details</div>
+        <table class="fee-table">
+            <thead>
+                <tr>
+                    <th>Sr. No.</th>
+                    <th>Particulars of Fees</th>
+                    <th class="amount">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- FEE_ROWS_PLACEHOLDER -->
+                <tr class="total">
+                    <td colspan="2"><strong>Total Fees</strong></td>
+                    <td class="amount"><strong><!-- TOTAL_FEES_PLACEHOLDER --></strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Add separate section for welfare fees summary if they exist -->
+        <!-- <div id="welfare-summary" style="margin-top: 15px; display: none;">
+            <table class="fee-table" style="border-top: 2px solid #1e40af;">
+                <thead>
+                    <tr>
+                        <th colspan="3" style="text-align: left; padding: 8px; background-color: #f0f4f8;">
+                            <strong>Student Welfare Fees Summary</strong>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2">Total Student Welfare Fees</td>
+                        <td class="amount"><strong id="welfare-total">0</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div> -->
+        
+        <div class="amount-in-words">
+            <p><strong>Amount in Words:</strong> {{amountInWords}} Rupees Only</p>
+        </div>
+        
+        <div class="payment-details">
+            <p><strong>Payment Mode:</strong> {{paymentMode}}</p>
+            <p><strong>Amount Paid:</strong> ₹{{amountPaid}}</p>
+            {{#if totalDueAmount}}
+            <p><strong>Total Due Amount:</strong> ₹{{totalDueAmount}}</p>
+            <p><strong>Balance Amount:</strong> ₹{{balanceAmount}}</p>
+            <p><strong>Payment Status:</strong> {{paymentStatus}}</p>
+            {{/if}}
+            <p><strong>Remarks:</strong> {{remarks}}</p>
+        </div>
+        
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-label">Seal of College</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-label">Signature of Receiver</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-label">Student/Guardian Signature</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>--- Thank You ---</p>
+        </div>
+    </div>
+</body>
+</html>

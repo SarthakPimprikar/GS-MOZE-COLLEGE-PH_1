@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            background: white;
+            padding: 10px;
+        }
+        
+        .dual-receipt {
+            display: flex;
+            gap: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .receipt {
+            flex: 1;
+            border: 1px double #666;
+            padding: 15px;
+            background: white;
+            font-size: 10px;
+            width: 48%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .receipt-copy-label {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-weight: bold;
+            font-size: 8px;
+            color: #333;
+            border: 1px solid #333;
+            padding: 1px 4px;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 1px double #666;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        
+        .school-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        
+        .school-logo {
+            width: 50px;
+            height: 50px;
+            margin-right: 12px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .school-info {
+            text-align: left;
+        }
+        
+        .school-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 2px;
+        }
+        
+        .school-address {
+            font-size: 8px;
+            color: #666;
+            margin-bottom: 1px;
+        }
+        
+        .school-contact {
+            font-size: 7px;
+            color: #666;
+        }
+        
+        h1 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin: 8px 0;
+        }
+        
+        .copy-subtitle {
+            font-size: 9px;
+            color: #333;
+            margin: -4px 0 8px 0;
+            font-weight: normal;
+        }
+        
+        .receipt-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 9px;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 10px;
+            color: #333;
+            border-bottom: 1px double #666;
+            padding-bottom: 2px;
+        }
+        
+        .student-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-bottom: 12px;
+            font-size: 8px;
+        }
+        
+        .student-info p {
+            margin: 0;
+        }
+        
+        .fee-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 8px;
+        }
+        
+        .fee-table th {
+            border: 1px double #666;
+            padding: 4px;
+            text-align: left;
+            background-color: #f8f8f8;
+            font-weight: bold;
+        }
+        
+        .fee-table td {
+            border: 1px double #666;
+            padding: 3px;
+        }
+        
+        .amount {
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .total {
+            background-color: #f8f8f8;
+            font-weight: bold;
+        }
+        
+        .amount-in-words {
+            margin-bottom: 12px;
+            font-size: 8px;
+            font-style: italic;
+        }
+        
+        .payment-details {
+            margin-bottom: 12px;
+            font-size: 8px;
+        }
+        
+        .payment-details p {
+            margin: 2px 0;
+        }
+        
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            font-size: 8px;
+        }
+        
+        .signature-box {
+            text-align: center;
+            width: 45%;
+        }
+        
+        .signature-line {
+            border-bottom: 1px double #666;
+            margin-bottom: 4px;
+            height: 20px;
+        }
+        
+        .signature-label {
+            font-size: 7px;
+            color: #666;
+        }
+        
+        .cut-line {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                #333 0px,
+                #333 2px,
+                transparent 2px,
+                transparent 6px
+            );
+            pointer-events: none;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .dual-receipt {
+                gap: 15px;
+            }
+            
+            .receipt {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dual-receipt">
+        <!-- Office Copy -->
+        <div class="receipt">
+            <div class="header">
+                <div class="school-header">
+                    <div class="school-logo">
+                        <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="25" cy="25" r="23" fill="#1e40af" stroke="#1e3a8a" stroke-width="2"/>
+                            <text x="25" y="23" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white" text-anchor="middle">DPS</text>
+                            <text x="25" y="32" font-family="Arial, sans-serif" font-size="5" fill="white" text-anchor="middle">SCHOOL</text>
+                        </svg>
+                    </div>
+                    <div class="school-info">
+                        <div class="school-name">Dnyaneshwari Primary and Secondary School</div>
+                        <div class="school-address">Mumbai - 400 037, Maharashtra, India</div>
+                        <div class="school-contact">Tel: +91-XXXX-XXXX | Email: info@dnyaneshwari.edu.in</div>
+                    </div>
+                </div>
+                <h1>FEE RECEIPT</h1>
+                <div class="copy-subtitle">(Office Copy)</div>
+            </div>
+            
+            <div class="receipt-details">
+                <p><strong>Receipt No:</strong> {{receiptNumber}}</p>
+                <p><strong>Date:</strong> {{date}}</p>
+            </div>
+            
+            <div class="section-title">Student Details</div>
+            <div class="student-info">
+                <p><strong>Name:</strong> {{student.fullName}}</p>
+                <p><strong>Student ID:</strong> {{student.studentId}}</p>
+                <p><strong>Program:</strong> {{student.programType}}</p>
+                <p><strong>Branch:</strong> {{student.branch}}</p>
+                <p><strong>Year:</strong> {{student.currentYear}}</p>
+                <p><strong>PRN:</strong> {{student.prn}}</p>
+                <p><strong>Email:</strong> {{student.email}}</p>
+                <p><strong>Phone:</strong> {{student.mobileNumber}}</p>
+            </div>
+            
+            <div class="section-title">Fee Details</div>
+            <table class="fee-table">
+                <thead>
+                    <tr>
+                        <th>Sr. No.</th>
+                        <th>Particulars of Fees</th>
+                        <th class="amount">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- FEE_ROWS_PLACEHOLDER -->
+                    <tr class="total">
+                        <td colspan="2"><strong>Total Fees</strong></td>
+                        <td class="amount"><strong><!-- TOTAL_FEES_PLACEHOLDER --></strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="amount-in-words">
+                <p><strong>Amount in Words:</strong> {{amountInWords}} Rupees Only</p>
+            </div>
+            
+            <div class="payment-details">
+                <p><strong>Payment Mode:</strong> {{paymentMode}}</p>
+                <p><strong>Amount Paid:</strong> ₹{{amountPaid}}</p>
+                <p><strong>Total Due Amount:</strong> ₹{{totalDueAmount}}</p>
+                <p><strong>Balance Amount:</strong> ₹{{balanceAmount}}</p>
+                <p><strong>Payment Status:</strong> {{paymentStatus}}</p>
+                <p><strong>Remarks:</strong> {{remarks}}</p>
+            </div>
+            
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Student Signature</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Authorized Signatory</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Copy -->
+        <div class="receipt">
+            <div class="header">
+                <div class="school-header">
+                    <div class="school-logo">
+                        <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="25" cy="25" r="23" fill="#1e40af" stroke="#1e3a8a" stroke-width="2"/>
+                            <text x="25" y="23" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white" text-anchor="middle">DPS</text>
+                            <text x="25" y="32" font-family="Arial, sans-serif" font-size="5" fill="white" text-anchor="middle">SCHOOL</text>
+                        </svg>
+                    </div>
+                    <div class="school-info">
+                        <div class="school-name">Dnyaneshwari Primary and Secondary School</div>
+                        <div class="school-address">Mumbai - 400 037, Maharashtra, India</div>
+                        <div class="school-contact">Tel: +91-XXXX-XXXX | Email: info@dnyaneshwari.edu.in</div>
+                    </div>
+                </div>
+                <h1>FEE RECEIPT</h1>
+                <div class="copy-subtitle">(Student Copy)</div>
+            </div>
+            
+            <div class="receipt-details">
+                <p><strong>Receipt No:</strong> {{receiptNumber}}</p>
+                <p><strong>Date:</strong> {{date}}</p>
+            </div>
+            
+            <div class="section-title">Student Details</div>
+            <div class="student-info">
+                <p><strong>Name:</strong> {{student.fullName}}</p>
+                <p><strong>Student ID:</strong> {{student.studentId}}</p>
+                <p><strong>Program:</strong> {{student.programType}}</p>
+                <p><strong>Branch:</strong> {{student.branch}}</p>
+                <p><strong>Year:</strong> {{student.currentYear}}</p>
+                <p><strong>PRN:</strong> {{student.prn}}</p>
+                <p><strong>Email:</strong> {{student.email}}</p>
+                <p><strong>Phone:</strong> {{student.mobileNumber}}</p>
+            </div>
+            
+            <div class="section-title">Fee Details</div>
+            <table class="fee-table">
+                <thead>
+                    <tr>
+                        <th>Sr. No.</th>
+                        <th>Particulars of Fees</th>
+                        <th class="amount">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- FEE_ROWS_PLACEHOLDER -->
+                    <tr class="total">
+                        <td colspan="2"><strong>Total Fees</strong></td>
+                        <td class="amount"><strong><!-- TOTAL_FEES_PLACEHOLDER --></strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="amount-in-words">
+                <p><strong>Amount in Words:</strong> {{amountInWords}} Rupees Only</p>
+            </div>
+            
+            <div class="payment-details">
+                <p><strong>Payment Mode:</strong> {{paymentMode}}</p>
+                <p><strong>Amount Paid:</strong> ₹{{amountPaid}}</p>
+                <p><strong>Total Due Amount:</strong> ₹{{totalDueAmount}}</p>
+                <p><strong>Balance Amount:</strong> ₹{{balanceAmount}}</p>
+                <p><strong>Payment Status:</strong> {{paymentStatus}}</p>
+                <p><strong>Remarks:</strong> {{remarks}}</p>
+            </div>
+            
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Student Signature</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Authorized Signatory</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
