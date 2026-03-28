@@ -5,6 +5,7 @@ import Student from "@/app/models/studentSchema";
 import FeeStructure from "@/app/models/feeStructureSchema";
 import { generateFeeReceiptPDF } from "@/utils/generateFeeReceiptPdf";
 import { generateFeeReceiptPDFDual } from "@/utils/generateFeeReceiptPdfDual";
+import { generateFeeReceiptPDFVercel } from "@/utils/generateFeeReceiptPdfVercel";
 
 export async function GET(req) {
   try {

@@ -282,8 +282,8 @@ export default function AccountantFeeStructurePage() {
       console.log('Receipt creation response:', receiptData);
       
       if (receiptData.success) {
-        // Create download link with full URL
-        const downloadUrl = `http://localhost:3000/api/fee/receipts/pdf?receiptId=${receiptData.receipt._id}`;
+        // Create download link with relative URL for production compatibility
+        const downloadUrl = `/api/fee/receipts/pdf?receiptId=${receiptData.receipt._id}`;
         console.log('Download URL:', downloadUrl);
         
         // Single download approach - fetch and create blob
