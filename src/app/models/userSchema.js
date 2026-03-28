@@ -65,6 +65,11 @@ const userSchema = new mongoose.Schema(
       refPath: "role",
     },
 
+    admissionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admission',
+    },
+
     sessionToken: String,
 
     // --- STAFF FIELDS ---
@@ -87,6 +92,29 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Pre-save middleware to hash password
+userSchema.pre('save', async function (next) {
+  // Only hash if password is new or modified
+  if (!this.isModified('password')) return next();
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Instance method to compare password
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (err) {
+    return false;
+  }
+};
 
 if (mongoose.models && mongoose.models.user) {
   delete mongoose.models.user;

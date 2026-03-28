@@ -525,7 +525,7 @@ const EnquiriesLeads = () => {
       if (!res.ok) throw new Error("Failed to fetch enquiries");
       const enquiriesData = await res.json();
       const counselorEnquiries = enquiriesData.filter(
-        (enquiry) => enquiry.counsellorId === user.id
+        (enquiry) => enquiry.counsellorId === user.id || !enquiry.counsellorId
       );
 
       setEnquiries(counselorEnquiries);
@@ -536,11 +536,35 @@ const EnquiriesLeads = () => {
       setLoading(false);
     }
   };
+
+  const handleConvertToAdmission = async (enquiryId) => {
+    if (!confirm("Are you sure you want to convert this enquiry to a full admission application? This will create a student user account.")) return;
+    
+    try {
+      setLoading(true);
+      const res = await fetch("/api/enquiry/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enquiryId, counsellorId: user.id })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to convert");
+      
+      toast.success("Enquiry converted to admission successfully!");
+      fetchEnquiries();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     fetchEnquiries();
   }, []);
 
   const totalEnquiries = enquiries.length;
+  const newLeads = enquiries.filter((e) => e.status === "New").length;
   const inProgress = enquiries.filter((e) => e.status === "In Progress").length;
   const converted = enquiries.filter((e) => e.status === "Converted").length;
   const conversionRate = totalEnquiries
@@ -548,10 +572,11 @@ const EnquiriesLeads = () => {
     : 0;
 
   const filteredEnquiries = enquiries.filter((enquiry) => {
+    const fullName = `${enquiry.first || ""} ${enquiry.middle || ""} ${enquiry.last || ""}`.toLowerCase();
     const matchesSearch =
-      (enquiry.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      fullName.includes(searchTerm.toLowerCase()) ||
       (enquiry.email?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (enquiry.course?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+      (enquiry.courseInterested?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
     if (activeTab === "All") return matchesSearch;
     return matchesSearch && enquiry.status === activeTab;
@@ -639,55 +664,21 @@ const EnquiriesLeads = () => {
           );
         }
 
-        // Prepare admission data according to the new schema
-        const admissionData = {
-          enquiryId: updatedEnquiry._id,
-          counsellorId: user?.id,
-          email: updatedEnquiry.email,
-          fullName: `${updatedEnquiry.first} ${updatedEnquiry.middle || ""} ${
-            updatedEnquiry.last
-          }`.trim(),
-          nameAsPerAadhar: `${updatedEnquiry.first} ${
-            updatedEnquiry.middle || ""
-          } ${updatedEnquiry.last}`.trim(),
-          firstName: updatedEnquiry.first,
-          middleName: updatedEnquiry.middle || "",
-          lastName: updatedEnquiry.last,
-          gender: updatedEnquiry.gender || "Other",
-          studentWhatsappNumber: updatedEnquiry.phone,
-          branch: updatedEnquiry.courseInterested,
-          programType: updatedEnquiry.programType || "",
-          nationality: updatedEnquiry.nationality || "Indian",
-          address: [
-            {
-              addressLine: updatedEnquiry.address || "Not specified",
-              city: updatedEnquiry.city || "Not specified",
-              state: updatedEnquiry.state || "Not specified",
-              pincode: updatedEnquiry.pincode || "000000",
-              country: updatedEnquiry.country || "India",
-            },
-          ],
-          motherName: updatedEnquiry.motherName || "Not specified",
-          dateOfBirth: updatedEnquiry.dateOfBirth || new Date("2000-01-01"),
-          status: "inProcess",
-        };
-
-        const admissionResponse = await fetch("/api/admission", {
+        // Use the new conversion API
+        const conversionResponse = await fetch("/api/enquiry/convert", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(admissionData),
+          body: JSON.stringify({
+            enquiryId: updatedEnquiry._id,
+            counsellorId: user?.id,
+          }),
         });
-
-        if (!admissionResponse.ok) {
-          const error = await admissionResponse.json();
-          throw new Error(`Admission creation failed: ${error.message}`);
-        }
 
         // Refresh the enquiries list
         await fetchEnquiries();
-        return await admissionResponse.json();
+        return await conversionResponse.json();
       }
 
       // Update local state
@@ -830,7 +821,7 @@ const EnquiriesLeads = () => {
           {/* Status Tabs */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex flex-wrap gap-2 mb-4">
-              {["All", "In Progress", "Contacted", "Converted", "Lost"].map(
+              {["All", "New", "In Progress", "Contacted", "Converted", "Lost"].map(
                 (tab) => (
                   <button
                     key={tab}
@@ -1025,12 +1016,22 @@ const EnquiriesLeads = () => {
                           <Eye className="w-4 h-4" />
                         </button>
                         {(enquiry.status === "In Progress" ||
+                          enquiry.status === "Contacted" || enquiry.status === "New") && (
+                          <button
+                             onClick={() => handleConvertToAdmission(enquiry._id)}
+                             className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                             title="Convert to Admission"
+                          >
+                             <UserPlus className="w-4 h-4" />
+                          </button>
+                        )}
+                        {(enquiry.status === "In Progress" ||
                           enquiry.status === "Contacted") && (
                           <button
                             onClick={() =>
                               openAssignModal(enquiry._id, enquiry.status)
                             }
-                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            className="p-1 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
                             title={
                               enquiry.status === "In Progress"
                                 ? "Mark as Contacted"

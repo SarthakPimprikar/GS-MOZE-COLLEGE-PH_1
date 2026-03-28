@@ -8,7 +8,8 @@ export async function GET(req) {
   await connectToDatabase();
 
   const { searchParams } = new URL(req.url);
-  const date = searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  const date = searchParams.get("date");
+  const userIdFilter = searchParams.get("userId");
 
   try {
     // Fetch all teachers/HODs
@@ -47,10 +48,25 @@ export async function GET(req) {
       ...allStaff,
     ];
 
-    // Fetch saved attendance for the date
-    const attendanceRecords = await AttendanceRecord.find({ date }).lean();
+    // Fetch saved attendance
+    let query = {};
+    if (userIdFilter) {
+      query.staffId = userIdFilter;
+    } else {
+      query.date = date || new Date().toISOString().slice(0, 10);
+    }
 
-    // Merge attendance status into users
+    const attendanceRecords = await AttendanceRecord.find(query).lean();
+
+    // If filtering by user, return all for that user
+    if (userIdFilter) {
+       return new Response(JSON.stringify({ data: attendanceRecords }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Merge attendance status into users (Existing logic for daily view)
     const users = allUsers.map(u => {
       const record = attendanceRecords.find(a => a.staffId.toString() === u._id.toString());
       return {
@@ -81,24 +97,34 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
-    // Try to find the user in Teacher collection
-    let user = await Teacher.findById(staffId).lean();
-    let role = user ? (user.role === "hod" ? "HOD" : "Teacher") : null;
+    // Try to find the user and their role across different collections
+    let user = null;
+    let role = null;
 
-    // If not found, try in User collection
+    // 1. Try Teacher/HOD
+    user = await Teacher.findById(staffId).lean();
+    if (user) {
+      role = user.role?.toLowerCase() === "hod" ? "HOD" : "Teacher";
+    }
+
+    // 2. Try User (Staff/Admin)
     if (!role) {
       user = await User.findById(staffId).lean();
-      role = user?.role === "staff" ? "Staff" : null;
+      if (user) {
+        if (user.role?.toLowerCase() === "staff") role = "Staff";
+        else if (user.role?.toLowerCase() === "admin") role = "Admin";
+        else role = "Staff"; // Default for other user roles being tracked
+      }
     }
 
-    // If not found, try in staffSchema collection
+    // 3. Try staffSchema (Alternative staff collection)
     if (!role) {
       user = await staffSchema.findById(staffId).lean();
-      role = user ? "Staff" : null;
+      if (user) role = "Staff";
     }
 
-    if (!user || !role) {
-      return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
+    if (!role) {
+      return new Response(JSON.stringify({ error: "User or Role not found" }), { status: 404 });
     }
 
     // Upsert attendance (create or update)

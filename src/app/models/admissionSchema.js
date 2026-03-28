@@ -297,211 +297,99 @@ const admissionSchema = new mongoose.Schema(
 
 
     // Name details
-
-    fullName: { type: String, required: true },
-
-    nameAsPerAadhar: { type: String },
-
     firstName: { type: String },
-
     middleName: { type: String, default: "" },
-
     lastName: { type: String },
-
-
-
-    gender: {
-
-      type: String,
-
-      // required: true,
-
-      // enum: ['Male', 'Female', 'Other']
-
-    },
-
-
-
-    // Academic details
-
-    programType: {
-
-      type: String,
-
-      // required: true,
-
-      // enum: ['Diploma', 'UG', 'PG']
-
-    },
-
-    year: {
-
-      type: String,
-
-      // required: true,
-
-      // enum: ['1st Year', '2nd Year', '3rd Year', '4th Year']
-
-    },
-
-    branch: { type: String },
-
-    shift: { type: String, default: "" },
-
-    division: { 
-
-      type: String, 
-
-      default: null 
-
-    },
-
-
-
-    // Admission process details
-
-    round: {
-
-      type: String,
-
-      // required: true,
-
-      // enum: ['CAP1', 'CAP2', 'CAP3', 'Institute Level']
-
-    },
-
-    quota: { type: String, default: "" },
-
-    seatType: {
-
-      type: String,
-
-      // required: true,
-
-      // enum: ['GOV', 'MIN', 'Management', 'TFWS']
-
-    },
-
-    admissionCategoryDTE: {
-
-      type: String,
-
-      // required: true,
-
-      // enum: ['CAP', 'Institute Level', 'Against CAP']
-
-    },
-
-    feesCategory: { type: String, default: "" },
-
-    admissionType: { type: String, default: "" },
-
-
-
-    // Personal background
-
-    casteAsPerLC: { type: String },
-
-    subCasteAsPerLC: { type: String, default: "" },
-
-    domicile: { type: String },
-
-    nationality: { type: String },
-
-    religionAsPerLC: { type: String, default: "" },
-
-    isForeignNational: { type: Boolean, default: false },
-
+    fullName: { type: String, required: true },
+    
+    // Additional Basic Info
+    studentNumber: { type: String }, // e.g., 11183021
+    studentWhatsappNumber: { type: String }, // e.g., (000) 000-0000
+    
+    gender: { type: String },
     dateOfBirth: { type: String },
 
+    // Academic details
+    programType: { type: String }, // Diploma, UG, PG
+    year: { type: String }, // 1st Year, 2nd Year, etc. (Year Level)
+    branch: { type: String }, // Degree Program
+    shift: { type: String, default: "" },
+    division: { type: String, default: null },
 
+    // High School Details
+    highSchool: {
+      schoolName: { type: String },
+      board: { type: String },
+      graduationYear: { type: String },
+      percentage: { type: String },
+      city: { type: String }
+    },
 
     // Family details
-
     motherName: { type: String },
-
+    motherMobileNumber: { type: String },
+    fatherGuardianWhatsappNumber: { type: String },
+    emergencyContact: {
+      firstName: { type: String },
+      lastName: { type: String },
+      relationship: { type: String },
+      phone: { type: String }
+    },
     familyIncome: { type: Number, default: 0 },
-
     totalFees: { type: Number, default: 0 },
 
+    // Address Details
+    presentAddress: {
+      addressLine1: { type: String },
+      addressLine2: { type: String },
+      city: { type: String },
+      state: { type: String },
+      pincode: { type: String },
+      country: { type: String, default: "India" },
+    },
+    permanentAddress: {
+      addressLine1: { type: String },
+      addressLine2: { type: String },
+      city: { type: String },
+      state: { type: String },
+      pincode: { type: String },
+      country: { type: String, default: "India" },
+    },
 
-
-    // Contact details
-
-    studentWhatsappNumber: { type: String },
-
-    fatherGuardianWhatsappNumber: { type: String },
-
-    motherMobileNumber: { type: String },
-
-
-
-    //Address Details
-
+    // Legacy/Old address field for compatibility (optional)
     address: [
-
       {
-
         addressLine: { type: String },
-
         city: { type: String },
-
         state: { type: String },
-
         pincode: { type: Number },
-
         country: { type: String },
-
       },
-
     ],
 
     // Documents (optional)
-
     documents: [
-
       {
-
         type: { type: String },
-
         fileName: { type: String },
-
         fileUrl: { type: String },
-
         mimeType: { type: String },
-
         uploadedAt: { type: Date, default: Date.now }
-
       },
-
     ],
 
-
-
     // Status
-
     status: {
-
       type: String,
-
-      enum: ["inProcess", "approved", "rejected"],
-
+      enum: ["pending", "inProcess", "verified", "selected", "enrolled", "rejected"],
       required: true,
-
-      default: "inProcess",
-
+      default: "pending",
     },
 
-
-
     createdAt: { type: Date, default: Date.now },
-
     updatedAt: { type: Date, default: Date.now },
-
   },
-
   { timestamps: true }
-
 );
 
 

@@ -244,24 +244,16 @@ const AdmissionDetailsModal = ({ admissionId, admission, onClose }) => {
 
     switch (status) {
 
-      case "New":
-
-        return <Zap className="w-4 h-4" />;
-
-      case "In Progress":
-
+      case "pending":
+      case "inProcess":
         return <Clock className="w-4 h-4" />;
-
-      case "Contacted":
-
-        return <Phone className="w-4 h-4" />;
-
-      case "Converted":
-
+      case "verified":
+        return <ShieldCheck className="w-4 h-4" />;
+      case "selected":
         return <Target className="w-4 h-4" />;
-
-      case "Lost":
-
+      case "enrolled":
+        return <CheckCircle className="w-4 h-4" />;
+      case "rejected":
         return <XCircle className="w-4 h-4" />;
 
       default:
@@ -278,24 +270,16 @@ const AdmissionDetailsModal = ({ admissionId, admission, onClose }) => {
 
     switch (status) {
 
-      case "New":
-
+      case "pending":
+      case "inProcess":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "verified":
         return "bg-blue-50 text-blue-700 border-blue-200";
-
-      case "In Progress":
-
-        return "bg-amber-50 text-amber-700 border-amber-200";
-
-      case "Contacted":
-
+      case "selected":
         return "bg-purple-50 text-purple-700 border-purple-200";
-
-      case "Converted":
-
+      case "enrolled":
         return "bg-green-50 text-green-700 border-green-200";
-
-      case "Lost":
-
+      case "rejected":
         return "bg-red-50 text-red-700 border-red-200";
 
       default:
@@ -1493,55 +1477,82 @@ const AdmissionApplications = () => {
       console.error("Failed to fetch admissions:", error);
 
     } finally {
-
       setLoading(false);
-
     }
-
   };
 
+  const handleConfirmEnrollment = async (id) => {
+    try {
+      setLoading(true);
+      // First update status to enrolled
+      const response = await fetch(`/api/admission/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "enrolled" }),
+      });
 
+      if (!response.ok) throw new Error("Failed to update status");
+
+      // Then call the convert API (which generates PRN etc)
+      const convertResponse = await fetch(`/api/admission/${id}/convert`, {
+        method: "POST",
+      });
+
+      const result = await convertResponse.json();
+      if (result.success) {
+        toast.success(`Student enrolled successfully! PRN: ${result.prn}`);
+        fetchAdmission();
+      } else {
+        toast.error(result.message || "Enrollment failed.");
+      }
+    } catch (error) {
+       toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-
     fetchAdmission();
+  }, []);
 
+  useEffect(() => {
+    fetchAcademicYears();
   }, []);
 
 
 
   const statusConfig = {
-
-    inProcess: {
-
+    pending: {
       color: "bg-yellow-100 text-yellow-800",
-
       icon: Clock,
-
-      label: "In Process",
-
+      label: "Pending",
     },
-
-    approved: {
-
+    inProcess: {
+      color: "bg-amber-100 text-amber-800",
+      icon: Clock,
+      label: "In Review",
+    },
+    verified: {
+      color: "bg-blue-100 text-blue-800",
+      icon: ShieldCheck,
+      label: "Verified",
+    },
+    selected: {
+      color: "bg-purple-100 text-purple-800",
+      icon: Target,
+      label: "Selected (Merit List)",
+    },
+    enrolled: {
       color: "bg-green-100 text-green-800",
-
       icon: CheckCircle,
-
-      label: "Approved",
-
+      label: "Enrolled",
     },
-
     rejected: {
-
       color: "bg-red-100 text-red-800",
-
       icon: XCircle,
-
       label: "Rejected",
-
     },
-
   };
 
 
@@ -3960,12 +3971,11 @@ const exportData = [
 
                 >
 
-                  <option value="all">All Status</option>
-
+                  <option value="pending">Pending</option>
                   <option value="inProcess">In Process</option>
-
-                  <option value="approved">Approved</option>
-
+                  <option value="verified">Verified</option>
+                  <option value="selected">Selected</option>
+                  <option value="enrolled">Enrolled</option>
                   <option value="rejected">Rejected</option>
 
                 </select>
@@ -4184,36 +4194,55 @@ const exportData = [
 
                         </Link>
 
-                        {/* Status Change Dropdown - Only for imported files (inProcess status) */}
-
-                        {console.log('Application status:', application.status, 'Application:', application._id) || application.status === 'inProcess' && (
-
-                          <div className="relative">
-
-                            <select
-
-                              value={application.status}
-
-                              onChange={(e) => handleStatusChange(application._id, e.target.value, application.fullName)}
-
-                              className="text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 px-2 py-1"
-
-                              title="Change Status (Imported File)"
-
+                        {/* Status Change — Approve/Reject for submitted apps, dropdown for others */}
+                        {application.status === 'inProcess' ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded mr-1">Awaiting Review</span>
+                            <button
+                              onClick={() => handleStatusChange(application._id, 'verified', application.fullName)}
+                              className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200 transition-colors"
+                              title="Approve — move to Verified"
                             >
-
-                              <option value="inProcess">In Process</option>
-
-                              <option value="approved">Approved</option>
-
-                              <option value="rejected">Rejected</option>
-
-                            </select>
-
-                            <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center" title="Imported File">i</span>
-
+                              <CheckCircle className="w-3 h-3" /> Approve
+                            </button>
+                            <button
+                              onClick={() => handleStatusChange(application._id, 'rejected', application.fullName)}
+                              className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold hover:bg-red-200 transition-colors"
+                              title="Reject Application"
+                            >
+                              <XCircle className="w-3 h-3" /> Reject
+                            </button>
                           </div>
-
+                        ) : (
+                          <div className="relative">
+                            <select
+                              value={application.status}
+                              onChange={(e) => handleStatusChange(application._id, e.target.value, application.fullName)}
+                              className={`text-sm border rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 font-medium ${
+                                application.status === 'enrolled' ? 'bg-green-50 border-green-200 text-green-700' : 
+                                application.status === 'selected' ? 'bg-purple-50 border-purple-200 text-purple-700' :
+                                application.status === 'verified' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                                'bg-white border-gray-300'
+                              }`}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="inProcess">In Review</option>
+                              <option value="verified">Verified</option>
+                              <option value="selected">Selected</option>
+                              <option value="enrolled">Enrolled</option>
+                              <option value="rejected">Rejected</option>
+                            </select>
+                          </div>
+                        )}
+                        
+                        {application.status === 'selected' && (
+                          <button
+                            onClick={() => handleConfirmEnrollment(application._id)}
+                            className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-1"
+                            title="Generate PRN and Enroll"
+                          >
+                            <UserCheck className="w-3 h-3" /> Enroll
+                          </button>
                         )}
 
                       </div>

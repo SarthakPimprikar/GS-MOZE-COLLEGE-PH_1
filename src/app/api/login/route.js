@@ -266,32 +266,57 @@ export async function POST(req) {
 
     // Student login logic
     if (role === "student") {
-      if (email !== password) {
-        return new Response(JSON.stringify({ message: "Invalid credentials" }), { status: 401 });
+      // 1. First attempt to login via User collection (Prospective Students/Admission Phase)
+      const userFromDB = await userSchema.findOne({ email, role: "student" });
+      
+      if (userFromDB) {
+        const passwordMatch = await bcrypt.compare(password, userFromDB.password);
+        if (passwordMatch) {
+          const sessionToken = crypto.randomBytes(32).toString("hex");
+          userFromDB.sessionToken = sessionToken;
+          await userFromDB.save();
+
+          cookieStore.set("sessionToken", sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 60 * 60, path: "/" });
+          cookieStore.set("role", role, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 60 * 60, path: "/" });
+
+          return new Response(JSON.stringify({
+            message: "Student login successful",
+            user: {
+              id: userFromDB._id,
+              fullName: userFromDB.fullName,
+              email: userFromDB.email,
+              role: "student",
+              admissionId: userFromDB.admissionId
+            },
+          }), { status: 200 });
+        }
       }
 
-      const studentUser = await studentSchema.findOne({ studentId: email });
-      if (!studentUser) {
-        return new Response(JSON.stringify({ message: "Student not found" }), { status: 404 });
+      // 2. Fallback to legacy Student ID login (Enrolled Students)
+      if (email === password) {
+        const studentUser = await studentSchema.findOne({ studentId: email });
+        if (studentUser) {
+          const sessionToken = crypto.randomBytes(32).toString("hex");
+          studentUser.sessionToken = sessionToken;
+          await studentUser.save();
+
+          cookieStore.set("sessionToken", sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 60 * 60, path: "/" });
+          cookieStore.set("role", role, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 60 * 60, path: "/" });
+
+          return new Response(JSON.stringify({
+            message: "Student login successful",
+            user: {
+              id: studentUser._id,
+              fullName: studentUser.fullName,
+              email: studentUser.email,
+              studentId: studentUser.studentId,
+              role: "student",
+            },
+          }), { status: 200 });
+        }
       }
 
-      const sessionToken = crypto.randomBytes(32).toString("hex");
-      studentUser.sessionToken = sessionToken;
-      await studentUser.save();
-
-      cookieStore.set("sessionToken", sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 60 * 60, path: "/" });
-      cookieStore.set("role", role, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 60 * 60, path: "/" });
-
-      return new Response(JSON.stringify({
-        message: "Student login successful",
-        user: {
-          id: studentUser._id,
-          fullName: studentUser.fullName,
-          email: studentUser.email,
-          studentId: studentUser.studentId,
-          role: "student",
-        },
-      }), { status: 200 });
+      return new Response(JSON.stringify({ message: "Invalid credentials" }), { status: 401 });
     }
 
     // Admin, Staff, Parents, HR, Superadmin login

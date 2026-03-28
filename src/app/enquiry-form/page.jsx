@@ -35,27 +35,19 @@ export default function EnquiryForm() {
   const [selectedProgramType, setSelectedProgramType] = useState("");
 
   const fetchDepartments = async () => {
-    try {
-      const response = await fetch("/api/courses");
-      if (!response.ok) throw new Error("Failed to fetch departments");
-      const departments = await response.json();
 
-      setCourseOptions(departments.courses || []);
-      setProgramTypeOptions(departments.programTypes || []);
-    } catch (error) {
-      console.error("Error fetching departments:", error);
-      // Fallback data if API fails to load easily during redesign
-      setProgramTypeOptions(["Undergraduate", "Postgraduate", "Diploma"]);
-      setCourseOptions([
-        { name: "B.Tech Computer Engineering", programType: "Undergraduate" },
-        { name: "B.Tech Mechanical Engineering", programType: "Undergraduate" },
-        { name: "MBA Finance", programType: "Postgraduate" },
-        { name: "MCA", programType: "Postgraduate" },
-        { name: "Diploma in Civil", programType: "Diploma" },
-      ]);
-    } finally {
-      setLoadingCourses(false);
-    }
+    setProgramTypeOptions(["Diploma", "UG"]);
+
+    setCourseOptions([
+      { name: "Computer Science", programType: "Diploma" },
+      { name: "Electrical", programType: "Diploma" },
+      { name: "Mechanical", programType: "Diploma" },
+      { name: "Computer Science", programType: "UG" },
+      { name: "Civil", programType: "UG" },
+    ]);
+
+    setLoadingCourses(false);
+
   };
 
   useEffect(() => {
@@ -77,7 +69,7 @@ export default function EnquiryForm() {
       );
       setFilteredCourseOptions(filtered);
     } else {
-      setFilteredCourseOptions(courseOptions);
+      setFilteredCourseOptions([]);
     }
   };
 

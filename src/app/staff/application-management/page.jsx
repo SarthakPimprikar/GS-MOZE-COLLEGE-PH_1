@@ -332,16 +332,16 @@ const AdmissionDetailsModal = ({ admissionId, admission, onClose }) => {
 
     switch (status) {
 
+      case "pending":
       case "inProcess":
-
         return <Clock className="w-4 h-4" />;
-
-      case "approved":
-
+      case "verified":
+        return <ShieldCheck className="w-4 h-4" />;
+      case "selected":
+        return <Target className="w-4 h-4" />;
+      case "enrolled":
         return <CheckCircle className="w-4 h-4" />;
-
       case "rejected":
-
         return <XCircle className="w-4 h-4" />;
 
       default:
@@ -358,16 +358,16 @@ const AdmissionDetailsModal = ({ admissionId, admission, onClose }) => {
 
     switch (status) {
 
+      case "pending":
       case "inProcess":
-
         return "bg-yellow-50 text-yellow-700 border-yellow-200";
-
-      case "approved":
-
+      case "verified":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "selected":
+        return "bg-purple-50 text-purple-700 border-purple-200";
+      case "enrolled":
         return "bg-green-50 text-green-700 border-green-200";
-
       case "rejected":
-
         return "bg-red-50 text-red-700 border-red-200";
 
       default:
@@ -4825,13 +4825,13 @@ const AdmissionApplications = () => {
     try {
       setLoading(true);
 
-      // Check if trying to approve without payment
-      if (newStatus === 'approved') {
+      // Check if trying to verify
+      if (newStatus === 'verified') {
         // Get the current admission state safely
         const currentAdmissions = admissions || [];
         const admissionRecord = currentAdmissions.find(app => app._id === id);
         if (!admissionRecord?.paymentStatus?.hasPayment) {
-          toast.error(`Cannot approve admission. Student must pay partial fees before approval.`);
+          toast.error(`Cannot verify admission. Student must pay partial fees before verification.`);
           return;
         }
       }
@@ -4859,40 +4859,9 @@ const AdmissionApplications = () => {
       await fetchAdmission();
 
       // Show success message
-      toast.success(`Application ${newStatus} successfully`);
+      toast.success(`Application updated to ${newStatus} successfully`);
 
-      // If approved, convert to student profile
-      if (newStatus === "approved") {
-        try {
-          const convertResponse = await fetch(`/api/admission/${id}/convert`, {
-            method: 'POST',
-          });
-
-          const convertResult = await convertResponse.json();
-
-          if (convertResponse.ok && convertResult.success) {
-            console.log("Converted to student:", convertResult);
-            toast.success(`Student profile created successfully! PRN: ${convertResult.prn}`);
-          } else {
-            console.error("Conversion failed:", convertResult);
-            // Handle specific duplicate errors with detailed messages
-            if (convertResult.field === "prn") {
-              toast.error("Failed to generate unique PRN. Please try again.");
-            } else if (convertResult.field === "email") {
-              toast.error(`Email already exists: ${convertResult.details || 'Please use a different email'}`);
-            } else if (convertResult.field === "admissionId") {
-              toast.error(`This admission has already been converted: ${convertResult.details || 'Please refresh the page'}`);
-            } else if (convertResult.field === "studentId") {
-              toast.error("Failed to generate unique Student ID. Please try again.");
-            } else {
-              toast.warning(`Application approved but student creation failed: ${convertResult.details || convertResult.error || 'Unknown error'}`);
-            }
-          }
-        } catch (convertError) {
-          console.error("Conversion error:", convertError);
-          toast.warning("Application approved but student creation failed due to network error");
-        }
-      }
+      // Application status transition
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error(error.message);
@@ -4974,43 +4943,42 @@ const AdmissionApplications = () => {
 
 
   const statusConfig = {
-
-    inProcess: {
-
-      color: "bg-yellow-100 text-yellow-800",
-
+    pending: {
+      color: "bg-yellow-50 text-yellow-700",
       icon: Clock,
-
-      label: "In Process",
-
+      label: "Pending",
       showActions: true,
-
     },
-
-    approved: {
-
+    inProcess: {
+      color: "bg-amber-50 text-amber-700 font-medium",
+      icon: Clock,
+      label: "In Review",
+      showActions: true,
+    },
+    verified: {
+      color: "bg-blue-50 text-blue-700",
+      icon: ShieldCheck,
+      label: "Verified",
+      showActions: false,
+    },
+    selected: {
+      color: "bg-purple-50 text-purple-700",
+      icon: Target,
+      label: "Selected",
+      showActions: false,
+    },
+    enrolled: {
       color: "bg-green-100 text-green-800",
-
       icon: CheckCircle,
-
-      label: "Approved",
-
+      label: "Enrolled",
       showActions: false,
-
     },
-
     rejected: {
-
-      color: "bg-red-100 text-red-800",
-
+      color: "bg-red-50 text-red-700",
       icon: XCircle,
-
       label: "Rejected",
-
       showActions: false,
-
     },
-
   };
 
 
@@ -5438,11 +5406,11 @@ const AdmissionApplications = () => {
                 >
 
                   <option value="all">All Status</option>
-
-                  <option value="inProcess">In Process</option>
-
-                  <option value="approved">Approved</option>
-
+                  <option value="pending">Pending</option>
+                  <option value="inProcess">In Review</option>
+                  <option value="verified">Verified</option>
+                  <option value="selected">Selected</option>
+                  <option value="enrolled">Enrolled</option>
                   <option value="rejected">Rejected</option>
 
                 </select>
@@ -5689,58 +5657,33 @@ const AdmissionApplications = () => {
 
                           </button>
 
-                          {completionPercentage === 100 &&
-
-                            application?.status === "inProcess" && (
-
+                          {(application?.status === "pending" || application?.status === "inProcess") && (
                               <>
-
                                 <button
-
                                   className="text-green-600 hover:text-green-900"
-
+                                  title="Verify Application"
                                   onClick={() =>
-
                                     handleStatusChange(
-
                                       application?._id,
-
-                                      "approved"
-
+                                      "verified"
                                     )
-
                                   }
-
                                 >
-
                                   <CheckCircle className="w-4 h-4" />
-
                                 </button>
-
                                 <button
-
                                   className="text-red-600 hover:text-red-900"
-
+                                  title="Reject Application"
                                   onClick={() =>
-
                                     handleStatusChange(
-
                                       application?._id,
-
                                       "rejected"
-
                                     )
-
                                   }
-
                                 >
-
                                   <XCircle className="w-4 h-4" />
-
                                 </button>
-
                               </>
-
                             )}
 
                         </div>

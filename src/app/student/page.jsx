@@ -1,39 +1,56 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User, Edit, BookOpen, Settings, Lock, Loader2, MapPin, Users, Phone, PhoneCall, Shield, Save, X, Briefcase, GraduationCap as GradIcon, Calendar, IndianRupee, ArrowRight } from 'lucide-react';
+import { User, Edit, Settings, Lock, Loader2, MapPin, Users, Phone, PhoneCall, Save, X, ArrowRight, GraduationCap as GradIcon } from 'lucide-react';
 import { useSession } from '@/context/SessionContext';
 
 export default function StudentProfilePage() {
   const { user } = useSession();
-  console.log(user)
   const studentId = user?.id;
 
   const [student, setStudent] = useState({});
   const [editMode, setEditMode] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile');
-  const [subjects, setSubjects] = useState([]);
+  const [activeTab, setActiveTab] = useState('personal details');
 
   // Loading states
-  const [isLoadingStudent, setIsLoadingStudent] = useState(true);
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  //---------------------------------------------------------------------------------
-
-  const [address, setAddress] = useState(null);
-  const [contact, setContact] = useState(null);
-  const [family, setFamily] = useState(null);
-
-  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [isLoadingContact, setIsLoadingContact] = useState(false);
-  const [isLoadingFamily, setIsLoadingFamily] = useState(false);
-  //------------------------------------------------------------------------------------
   const [admission, setAdmission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [upcomingDrives, setUpcomingDrives] = useState([]);
-  const [isLoadingDrives, setIsLoadingDrives] = useState(false);
+
+  // Stepper — labels match the admission lifecycle
+  const steps = [
+    { label: 'Enquiry', id: 'enquiry' },
+    { label: 'Converted', id: 'converted' },
+    { label: 'Fill Basic Info', id: 'basic' },
+    { label: 'Fill High School Info', id: 'highschool' },
+    { label: 'Submit', id: 'submit' }
+  ];
+
+  // Real-time: reads student state so it advances as user types
+  const getActiveStep = () => {
+    const data = student;
+    const status = admission?.status;
+
+    // Step 6 = verified / selected / enrolled (Completion)
+    if (status === 'verified' || status === 'selected' || status === 'enrolled') return 6;
+
+    // Step 5 = submitted (inProcess)
+    if (status === 'inProcess') return 5;
+
+    // Step 4 = high school info filled
+    if (data.highSchool?.schoolName?.trim() || data.highSchool?.board?.trim()) return 4;
+
+    // Step 3 = basic info filled (first + last name or student number)
+    if (data.firstName?.trim() || data.lastName?.trim() || data.studentNumber?.trim()) return 3;
+
+    // Step 2 = account exists (converted from enquiry)
+    if (admission) return 2;
+
+    // Step 1 = enquiry submitted
+    return 1;
+  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -42,71 +59,37 @@ export default function StudentProfilePage() {
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
   };
-  //-------------------------------------------------------------------------------
-  const fetchStudent = async () => {
-    try {
-      setIsLoadingStudent(true);
-      const res = await fetch(`/api/students/${user.id}`);
-      if (!res.ok) throw new Error('Failed to fetch student data');
-      const data = await res.json();
-      setStudent(data);
-    } catch (err) {
-      console.error('[FETCH_STUDENT_ERROR]', err);
-    } finally {
-      setIsLoadingStudent(false);
-    }
-  };
 
   useEffect(() => {
-    if (!user?.id) return;
-    fetchStudent();
-
+    // Admission data is fetched in the following effect
   }, [user?.id]);
 
   //-----------------------------------------------------------------------
   useEffect(() => {
     if (!user?.id) return;
-
-    const fetchSubjects = async () => {
-      try {
-        setIsLoadingSubjects(true);
-        const res = await fetch(`/api/students/${user.id}/academics`);
-        const data = await res.json();
-        console.log("-------------------" + user)
-        const subjectsArray =
-          data.academic?.years?.[0]?.divisions?.[0]?.subjects || [];
-
-        setSubjects(subjectsArray);
-      } catch (err) {
-        console.error('[FETCH_SUBJECTS_ERROR]', err);
-      } finally {
-        setIsLoadingSubjects(false);
-      }
-    };
-
-    fetchSubjects();
-  }, [user?.id]);
-
-  //-----------------------------------------------------------------------
-  useEffect(() => {
-    if (!user?.id) return;
-    const id = user?.id;
-    console.log(user.id)
-    // if (!user?.admissionId) return;
-    // const id = user?.admissionId;
-    //console.log(user.admissionId)
-
+    
     const fetchAdmissionDetails = async () => {
       try {
-        const response = await fetch(`/api/students/${id}/admission`);
-        //const response = await fetch(`/api/admission/${id}`)
+        setLoading(true);
+        // Prioritize admissionId from session if available
+        const idToFetch = user.admissionId || user.id;
+        const endpoint = user.admissionId 
+          ? `/api/admission/${user.admissionId}` 
+          : `/api/students/${user.id}/admission`;
+          
+        const response = await fetch(endpoint);
         if (!response.ok) {
           throw new Error('Failed to fetch admission details');
         }
         const data = await response.json();
-        console.log('Fetched admission data:', data);
-        setAdmission(data.admission);
+        
+        // Handle different response structures from both endpoints
+        const admissionData = data.admission || data.data;
+        console.log('Fetched admission data:', admissionData);
+        setAdmission(admissionData);
+        setStudent(admissionData); // Map admission data to student state for editing
       } catch (err) {
+        console.error("Admission fetch error:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -114,38 +97,17 @@ export default function StudentProfilePage() {
     };
 
     fetchAdmissionDetails();
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (activeTab === 'placements') {
-      const fetchDrives = async () => {
-        try {
-          setIsLoadingDrives(true);
-          const res = await fetch('/api/placement/drives');
-          const data = await res.json();
-          if (data.success) {
-            // Filter only upcoming or registration open
-            const filtered = data.data.filter(d => 
-              d.status === 'Upcoming' || d.status === 'Registration Open'
-            );
-            setUpcomingDrives(filtered);
-          }
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setIsLoadingDrives(false);
-        }
-      };
-      fetchDrives();
-    }
-  }, [activeTab]);
+  }, [user?.id, user?.admissionId]);
 
   //----------------------------------------------------------------------
 
   const saveProfileChanges = async () => {
     try {
       setIsSaving(true);
-      const res = await fetch(`/api/students/${student._id}`, {
+      const targetId = admission?._id || user.admissionId;
+      if (!targetId) throw new Error("No admission ID found");
+
+      const res = await fetch(`/api/admission/${targetId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -153,15 +115,73 @@ export default function StudentProfilePage() {
         body: JSON.stringify(student),
       });
 
-      if (!res.ok) throw new Error('Failed to update student profile');
+      if (!res.ok) throw new Error('Failed to update profile');
 
-      const updatedData = await res.json();
-      setStudent(updatedData.student);
+      const result = await res.json();
+      setAdmission(result.data);
+      setStudent(result.data);
       setEditMode(false);
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('[UPDATE_PROFILE_ERROR]', error);
-      alert('Error updating profile. Please try again.');
+      alert('Error updating profile: ' + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Real-time progress: reads from `student` state so it updates as user types,
+  // not just after saving. student is seeded from admission on load and stays in sync.
+  const calculateProgress = () => {
+    const data = student; // student updates live via handleInputChange
+    if (!data && !admission) return 0;
+
+    let completed = 0;
+    const total = 10;
+
+    // ── Basic Info (4 pts) ─────────────────────────────────
+    if (data.firstName?.trim())        completed++;
+    if (data.lastName?.trim())         completed++;
+    if (data.studentNumber?.trim())    completed++;
+    if (data.year)                     completed++; // Swapped dateOfBirth for year
+
+    // ── Contact (1 pt) ────────────────────────────────────
+    if (data.studentWhatsappNumber?.trim()) completed++;
+
+    // ── High School (2 pts) ───────────────────────────────
+    if (data.highSchool?.schoolName?.trim()) completed++;
+    if (data.highSchool?.board?.trim())      completed++;
+
+    // ── Address (2 pts) ───────────────────────────────────
+    if (data.presentAddress?.addressLine1?.trim() || data.presentAddress?.city?.trim()) completed++;
+    if (data.permanentAddress?.addressLine1?.trim() || data.permanentAddress?.city?.trim()) completed++;
+
+    // ── Family / Emergency (1 pt) ─────────────────────────
+    if (data.motherName?.trim() || data.emergencyContact?.firstName?.trim()) completed++;
+
+    return Math.round((completed / total) * 100);
+  };
+
+  const handleSendForVerification = async () => {
+    try {
+      setIsSaving(true);
+      const targetId = admission?._id || user.admissionId;
+      
+      const res = await fetch(`/api/admission/${targetId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'inProcess' }),
+      });
+
+      if (!res.ok) throw new Error('Failed to submit for verification');
+
+      const result = await res.json();
+      setAdmission(result.data);
+      alert('Application submitted for verification successfully!');
+    } catch (error) {
+      alert('Error: ' + error.message);
     } finally {
       setIsSaving(false);
     }
@@ -171,15 +191,17 @@ export default function StudentProfilePage() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    if (name.startsWith('address.')) {
-      const field = name.split('.')[1];
-      setStudent((prev) => ({
-        ...prev,
-        address: {
-          ...(prev.address || {}),
-          [field]: value,
-        },
-      }));
+    if (name.includes('.')) {
+      const sectors = name.split('.');
+      if (sectors.length === 2) {
+        setStudent((prev) => ({
+          ...prev,
+          [sectors[0]]: {
+            ...(prev[sectors[0]] || {}),
+            [sectors[1]]: value,
+          },
+        }));
+      }
     } else {
       setStudent((prev) => ({ ...prev, [name]: value }));
     }
@@ -187,78 +209,120 @@ export default function StudentProfilePage() {
 
   //----------------------------------------------------------------------------------------
 
-  // const id = student.admissionId;
-  // const fetchAdmissionDetails = async () => {
-  //   try {
-  //     const response = await fetch(`/api/admission/${id}`);
-  //     if (!response.ok) {
-  //       throw new Error('Failed to fetch admission details');
-  //     }
-  //     const data = await response.json();
-  //     setAdmissionData(data);
-  //   } catch (err) {
-  //     setError(err.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-
-  if (loading) return <div>Loading admission details...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!admission) return <div>No admission data found</div>;
-  //---------------------------------------------------------------------------------------------------
-  // Loading component
-  const LoadingSpinner = () => (
-    <div className="flex items-center justify-center p-8">
-      <Loader2 className="w-8 h-8 animate-spin text-moze-primary" />
-    </div>
-  );
-
-  // Skeleton components
-  const SkeletonCard = () => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
-      <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-      <div className="space-y-3">
-        <div className="h-3 bg-gray-200 rounded"></div>
-        <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-        <div className="h-3 bg-gray-200 rounded w-4/6"></div>
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-12 h-12 animate-spin text-moze-primary mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800">Loading admissions portal...</h2>
       </div>
     </div>
   );
 
-  const ProfileSkeleton = () => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center animate-pulse">
-      <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-200"></div>
-      <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-      <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-1"></div>
-      <div className="h-3 bg-gray-200 rounded w-2/3 mx-auto"></div>
-    </div>
-  );
-
-  // Show loading for initial data
-  if (isLoadingStudent && !student.fullName) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <Loader2 className="w-12 h-12 animate-spin text-moze-primary mx-auto mb-4" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading Profile</h2>
-          <p className="text-gray-600">Please wait while we fetch your information...</p>
-        </div>
-      </div>
-    );
-  }
+  const progress = calculateProgress();
+  const currentStep = getActiveStep();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Admissions Portal</h1>
+            <p className="text-gray-500">Welcome, {student.firstName || user.fullName}</p>
+          </div>
+          <div className="flex items-center gap-3">
+           {editMode ? (
+             <button onClick={saveProfileChanges} className="px-6 py-2 bg-moze-primary text-white font-bold rounded-xl shadow-lg">Save Profile</button>
+           ) : (
+             <button onClick={() => setEditMode(true)} className="px-6 py-2 bg-moze-primary text-white font-bold rounded-xl shadow-lg">Update Information</button>
+           )}
+          </div>
+        </div>
+      {/* Upper Navigation/Header Placeholder if needed */}
+
+      <div className="max-w-6xl mx-auto px-4 md:px-10 py-10">
+        {/* New Stepper UI */}
+        <div className="bg-white rounded-3xl shadow-xl p-8 mb-10 border border-gray-100">
+           <div className="flex items-center justify-between mb-8">
+              {steps.map((step, index) => (
+                <div key={step.id} className="flex flex-col items-center flex-1 relative">
+                  {/* Line connector */}
+                  {index < steps.length - 1 && (
+                    <div className={`absolute top-5 left-1/2 w-full h-1 z-0 ${index + 1 < currentStep ? 'bg-green-500' : 'bg-gray-200'}`}></div>
+                  )}
+                  {/* Step Circle */}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 transition-all duration-300 ${
+                    index + 1 < currentStep ? 'bg-green-500 text-white' : 
+                    index + 1 === currentStep ? 'bg-moze-primary text-white scale-110 shadow-lg' : 
+                    'bg-gray-200 text-gray-500'
+                  }`}>
+                    {index + 1 < currentStep ? '✓' : index + 1}
+                  </div>
+                  <span className={`text-[10px] md:text-sm font-bold mt-3 text-center transition-colors ${
+                    index + 1 <= currentStep ? 'text-gray-900' : 'text-gray-400'
+                  }`}>
+                    {step.label}
+                  </span>
+                </div>
+              ))}
+           </div>
+
+           {/* Congrats Message - Visible for Verified, Selected or Enrolled */}
+           {(admission?.status === 'verified' || admission?.status === 'selected' || admission?.status === 'enrolled') && (
+             <div className="bg-green-50 border-2 border-green-200 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-6 animate-in fade-in slide-in-from-bottom duration-700 mt-6 shadow-sm">
+                <div className="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg rotate-3">
+                  <GradIcon size={32} />
+                </div>
+                <div className="text-center md:text-left">
+                  <h3 className="text-2xl font-serif font-bold text-green-800 mb-1">Congratulations! 🎉</h3>
+                  <p className="text-green-700 text-lg font-medium leading-relaxed">
+                    Welcome to <span className="font-bold underline">GS Moze College</span>, you have been selected and your admission process is now complete!
+                  </p>
+                </div>
+             </div>
+           )}
+        </div>
+        {/* Progress Tracker Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-gray-700 uppercase tracking-wider">Admission Progress</span>
+                <span className="text-sm font-bold text-moze-primary">{progress}% Complete</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-3">
+                <div 
+                  className="bg-moze-primary h-3 rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {progress === 100 && admission.status === 'pending' && (
+                <button
+                  onClick={handleSendForVerification}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                >
+                  Confirm & Submit
+                </button>
+              )}
+              
+              {/* Status Badge Removed at user request */}
+            </div>
+          </div>
+          
+          {progress < 100 && (
+            <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
+              Please complete all sections (Personal, Address, Contact, Family) to enable verification.
+            </p>
+          )}
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-serif font-bold text-gray-800">Student Profile</h1>
 
-          {/* Edit/Save/Cancel buttons - allowed for student, staff, HOD, admin, but hidden on courses tab */}
-          {['student', 'staff', 'hod', 'admin', 'superadmin'].includes(user?.role?.toLowerCase()) && activeTab !== 'courses' && (
+          {/* Edit/Save/Cancel buttons - allowed for authorized roles */}
+          {['student', 'staff', 'hod', 'admin', 'superadmin'].includes(user?.role?.toLowerCase()) && (
             <div className="flex items-center gap-3">
               {editMode ? (
                 <>
@@ -309,7 +373,7 @@ export default function StudentProfilePage() {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <nav className="space-y-1">
-                {['personal details', 'address', 'contact', 'family', 'courses', 'placements'].map((tab) => (
+                {['personal details', 'address', 'contact', 'family'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -322,8 +386,6 @@ export default function StudentProfilePage() {
                     {tab === 'address' && <MapPin size={18} />}
                     {tab === 'contact' && <Phone size={18} />}
                     {tab === 'family' && <Users size={18} />}
-                    {tab === 'courses' && <BookOpen size={18} />}
-                    {tab === 'placements' && <Briefcase size={18} />}
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
                   </button>
                 ))}
@@ -334,259 +396,238 @@ export default function StudentProfilePage() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
 
-            {(activeTab === 'profile' || activeTab === 'personal details') && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-serif font-bold text-gray-800">Personal Information</h2>
-                </div>
-
-                {isLoadingStudent ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[...Array(4)].map((_, i) => (
-                      <div key={`skeleton-${i}`} className="space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse"></div>
-                        <div className="h-10 bg-gray-100 rounded animate-pulse"></div>
-                      </div>
-                    ))}
+            {(activeTab === 'personal details') && (
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-gray-50 px-8 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-800">Basic Information</h2>
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <ArrowRight size={16} className="text-gray-400 rotate-90" />
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Full Name */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-600">Full Name</label>
+                </div>
+                
+                <div className="p-8 space-y-8">
+                  {/* Full Name Section */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Full Name</label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {['firstName', 'middleName', 'lastName'].map((field) => (
+                        <div key={field}>
+                          {editMode ? (
+                            <input
+                              type="text"
+                              name={field}
+                              value={student[field] || ''}
+                              onChange={handleInputChange}
+                              placeholder={field.replace(/([A-Z])/g, ' $1').trim()}
+                              className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl focus:border-moze-primary transition-all outline-none"
+                            />
+                          ) : (
+                            <div className="px-4 py-3 bg-gray-50 rounded-2xl border border-gray-100 text-gray-900 font-medium h-[52px] flex items-center">
+                              {student[field] || '-'}
+                            </div>
+                          )}
+                          <span className="text-[10px] text-gray-400 uppercase font-bold mt-1 block ml-2">
+                            {field.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Student Number & Degree */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Student Number</label>
                       {editMode ? (
                         <input
                           type="text"
-                          name="fullName"
-                          value={student.fullName || ''}
+                          name="studentNumber"
+                          value={student.studentNumber || ''}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-                          placeholder="Enter full name"
+                          placeholder="e.g. 11183021"
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl focus:border-moze-primary outline-none"
                         />
                       ) : (
-                        <p className="text-gray-900 font-medium">
-                          {student.fullName || user.fullName || <span className="text-gray-400">Not provided</span>}
-                        </p>
+                        <p className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl font-bold">{student.studentNumber || '-'}</p>
                       )}
+                      <span className="text-[10px] text-gray-400 mt-1 block ml-2">Unique Identification Number</span>
                     </div>
 
-                    {/* Email */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-600">Email</label>
-                      {editMode ? (
-                        <input
-                          type="email"
-                          name="email"
-                          value={student.email || ''}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-                          placeholder="Enter email address"
-                        />
-                      ) : (
-                        <p className="text-gray-900 font-medium">
-                          {student.email || user.email || <span className="text-gray-400">Not provided</span>}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Date of Birth */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-600">Date of Birth</label>
-                      {editMode ? (
-                        <input
-                          type="date"
-                          name="dateOfBirth"
-                          value={student.dateOfBirth ? student.dateOfBirth.split('T')[0] : ''}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-                        />
-                      ) : (
-                        <p className="text-gray-900 font-medium">
-                          {student.dateOfBirth ? (
-                            formatDate(student.dateOfBirth)
-                          ) : (
-                            <span className="text-gray-400">Not provided</span>
-                          )}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Gender */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-600">Gender</label>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Year Level</label>
                       {editMode ? (
                         <select
-                          name="gender"
-                          value={student.gender || ''}
+                          name="year"
+                          value={student.year || ''}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl focus:border-moze-primary outline-none"
                         >
-                          <option value="">Select Gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Other</option>
+                          <option value="">Please Select</option>
+                          <option value="1st Year">1st Year</option>
+                          <option value="2nd Year">2nd Year</option>
+                          <option value="3rd Year">3rd Year</option>
                         </select>
                       ) : (
-                        <p className="text-gray-900 font-medium">
-                          {student.gender || <span className="text-gray-400">Not provided</span>}
-                        </p>
+                        <p className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl font-bold">{student.year || '-'}</p>
                       )}
                     </div>
-
-                    {/* Religion */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-600">Religion</label>
-                      {editMode ? (
-                        <input
-                          type="text"
-                          name="religion"
-                          value={student.religion || ''}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-                          placeholder="Enter religion"
-                        />
-                      ) : (
-                        <p className="text-gray-900 font-medium">
-                          {student.religionAsPerLC || <span className="text-gray-400">Not provided</span>}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Caste */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-600">Caste</label>
-                      {editMode ? (
-                        <input
-                          type="text"
-                          name="casteAsPerLC"
-                          value={student.casteAsPerLC || ''}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-                          placeholder="Enter caste"
-                        />
-                      ) : (
-                        <p className="text-gray-900 font-medium">
-                          {student.casteAsPerLC || <span className="text-gray-400">Not provided</span>}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Nationality */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-600">Nationality</label>
-                      {editMode ? (
-                        <input
-                          type="text"
-                          name="nationality"
-                          value={student.nationality || ''}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-                          placeholder="Enter nationality"
-                        />
-                      ) : (
-                        <p className="text-gray-900 font-medium">
-                          {student.nationality || <span className="text-gray-400">Not provided</span>}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Domicile */}
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-600">Domicile</label>
-                      {editMode ? (
-                        <input
-                          type="text"
-                          name="domicile"
-                          value={student.domicile || ''}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-                          placeholder="Enter domicile"
-                        />
-                      ) : (
-                        <p className="text-gray-900 font-medium">
-                          {student.domicile || <span className="text-gray-400">Not provided</span>}
-                        </p>
-                      )}
-                    </div>
-
                   </div>
-                )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Degree Program</label>
+                      <p className="px-4 py-3 bg-blue-50 text-blue-800 border border-blue-100 rounded-2xl font-bold">
+                        {student.branch || admission?.branch || '-'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Email Address</label>
+                      <p className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-gray-600">{student.email || '-'}</p>
+                    </div>
+                  </div>
+
+                  {/* Phone & Provider */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">Phone Number</label>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          name="studentWhatsappNumber"
+                          value={student.studentWhatsappNumber || ''}
+                          onChange={handleInputChange}
+                          placeholder="(000) 000-0000"
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl focus:border-moze-primary outline-none"
+                        />
+                      ) : (
+                        <p className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl font-bold">{student.studentWhatsappNumber || '-'}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* High School Section */}
+                  <div className="pt-8 border-t-2 border-gray-50">
+                    <label className="block text-lg font-serif font-bold text-moze-primary mb-6">High School Information</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">School name</label>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            name="highSchool.schoolName"
+                            value={student.highSchool?.schoolName || ''}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                          />
+                        ) : (
+                          <p className="font-bold">{student.highSchool?.schoolName || '-'}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Board</label>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            name="highSchool.board"
+                            value={student.highSchool?.board || ''}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                          />
+                        ) : (
+                          <p className="font-bold">{student.highSchool?.board || '-'}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
             {activeTab === 'address' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-maroon-50/30 to-maroon-50/50 px-6 py-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-maroon-50 text-moze-primary rounded-lg">
-                        <MapPin className="w-5 h-5 text-moze-primary" />
+              <div className="space-y-10">
+                {/* Present Address */}
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="bg-gray-50 px-8 py-4 border-b border-gray-100">
+                    <h2 className="text-xl font-bold text-gray-800">Present Address</h2>
+                  </div>
+                  <div className="p-8 space-y-6">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Street Address</label>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          name="presentAddress.addressLine1"
+                          value={student.presentAddress?.addressLine1 || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                        />
+                      ) : (
+                        <p className="font-bold">{student.presentAddress?.addressLine1 || '-'}</p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">City</label>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            name="presentAddress.city"
+                            value={student.presentAddress?.city || ''}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                          />
+                        ) : (
+                          <p className="font-bold">{student.presentAddress?.city || '-'}</p>
+                        )}
                       </div>
-                      <h2 className="text-xl font-serif font-bold text-gray-800">Address Information</h2>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">State</label>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            name="presentAddress.state"
+                            value={student.presentAddress?.state || ''}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                          />
+                        ) : (
+                          <p className="font-bold">{student.presentAddress?.state || '-'}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-6">
-                  {isLoadingStudent ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-moze-primary"></div>
+                {/* Permanent Address */}
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="bg-gray-50 px-8 py-4 border-b border-gray-100 flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-gray-800">Permanent Address</h2>
+                    {editMode && (
+                      <button 
+                        onClick={() => setStudent(prev => ({ ...prev, permanentAddress: { ...prev.presentAddress } }))}
+                        className="text-xs font-bold text-moze-primary"
+                      >
+                        COPY FROM PRESENT
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-8 space-y-6">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Street Address</label>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          name="permanentAddress.addressLine1"
+                          value={student.permanentAddress?.addressLine1 || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                        />
+                      ) : (
+                        <p className="font-bold">{student.permanentAddress?.addressLine1 || '-'}</p>
+                      )}
                     </div>
-                  ) : student?.address ? (
-                    <div className="space-y-6">
-                      {/* Full Address Preview */}
-                      <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-moze-primary">
-                        <h3 className="text-sm font-medium text-gray-700 mb-2">Complete Address</h3>
-                        <p className="text-gray-900 leading-relaxed">
-                          {[
-                            student.address.addressLine,
-                            student.address.city,
-                            student.address.state,
-                            student.address.pincode,
-                            student.address.country
-                          ].filter(Boolean).join(', ')}
-                        </p>
-                      </div>
-
-                      {/* Address Fields */}
-                      <dl className="divide-y divide-gray-100">
-                        {[
-                          { label: 'Address Line', key: 'addressLine', value: student.address?.addressLine },
-                          { label: 'City', key: 'city', value: student.address?.city },
-                          { label: 'State', key: 'state', value: student.address?.state },
-                          { label: 'Pincode', key: 'pincode', value: student.address?.pincode },
-                          { label: 'Country', key: 'country', value: student.address?.country }
-                        ].map(({ label, key, value }) => (
-                          <div key={label} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="flex-1 min-w-0">
-                              <dt className="text-sm font-medium text-gray-600 mb-1">{label}</dt>
-                              {editMode ? (
-                                <input
-                                  type="text"
-                                  name={`address.${key}`}
-                                  value={value || ''}
-                                  onChange={handleInputChange}
-                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-                                  placeholder={`Enter ${label.toLowerCase()}`}
-                                />
-                              ) : (
-                                <dd className="text-gray-900 break-words">{value || '-'}</dd>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </dl>
-
-                      {/* Quick Actions */}
-
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
@@ -607,7 +648,7 @@ export default function StudentProfilePage() {
 
                 {/* Content */}
                 <div className="p-6">
-                  {isLoadingStudent ? (
+                  {loading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                     </div>
@@ -616,9 +657,7 @@ export default function StudentProfilePage() {
                       {/* Contact Fields Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {[
-                          { label: 'Phone Number', key: 'mobileNumber', icon: Phone, color: 'blue' },
-                          // { label: 'Alternate Phone', key: 'alternatePhone', icon: PhoneCall, color: 'purple' },
-                          // { label: 'Emergency Contact', key: 'emergencyContact', icon: Shield, color: 'red' },
+                          { label: 'WhatsApp Number', key: 'studentWhatsappNumber', icon: Phone, color: 'blue' },
                         ].map(({ label, key, icon: Icon, color }) => (
                           <div key={key} className="space-y-2">
                             <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
@@ -635,9 +674,9 @@ export default function StudentProfilePage() {
                                 placeholder={`Enter ${label.toLowerCase()}`}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                 pattern={
-                                  key === 'mobileNumber' 
-                                    ? /^[6-9]\d{10}$/
-                                    : /^[6-9]\d{10}$/
+                                  key === 'studentWhatsappNumber' 
+                                    ? /^[6-9]\d{9}$/
+                                    : /^[6-9]\d{9}$/
                                 }
                                 maxLength={10}
                                 onInput={(e) => {
@@ -664,203 +703,52 @@ export default function StudentProfilePage() {
             )}
 
             {activeTab === 'family' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-serif font-bold text-gray-800 mb-6">Family Details</h2>
-
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Name</label>
-    {editMode ? (
-      <input
-        type="text"
-        name="motherName"
-        value={student.motherName || admission?.motherName || ''}
-        onChange={handleInputChange}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-        placeholder="Enter mother's name"
-        maxLength={50}
-      />
-    ) : (
-      <p className="text-base text-gray-900">{student.motherName || admission?.motherName || 'N/A'}</p>
-    )}
-  </div>
-
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">Mother's Mobile Number</label>
-    {editMode ? (
-      <input
-        type="tel"
-        name="motherMobileNumber"
-        value={student.motherMobileNumber || ''}
-        onChange={handleInputChange}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-        placeholder="Enter mother's mobile number"
-        pattern={{
-          value: /^[0-9]{10}$/,
-          message: "Please enter exactly 10 digits (0-9 only)"
-        }}
-        maxLength={10}
-        onInput={(e) => {
-          // Only allow digits for phone fields
-          const value = e.target.value.replace(/\D/g, '');
-          e.target.value = value;
-        }}
-      />
-    ) : (
-      <p className="text-base text-gray-900">{student.motherMobileNumber || admission?.motherMobileNumber || 'N/A'}</p>
-    )}
-  </div>
-
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">Father/Guardian WhatsApp Number</label>
-    {editMode ? (
-      <input
-        type="tel"
-        name="fatherGuardianWhatsappNumber"
-        value={student.fatherGuardianWhatsappNumber || ''}
-        onChange={handleInputChange}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-        placeholder="Enter father/guardian WhatsApp number"
-        pattern={{
-          value: /^[0-9]{10}$/,
-          message: "Please enter exactly 10 digits (0-9 only)"
-        }}
-        maxLength={10}
-        onInput={(e) => {
-          // Only allow digits for phone fields
-          const value = e.target.value.replace(/\D/g, '');
-          e.target.value = value;
-        }}
-      />
-    ) : (
-      <p className="text-base text-gray-900">{student.fatherGuardianWhatsappNumber || admission?.fatherGuardianWhatsappNumber || 'N/A'}</p>
-    )}
-  </div>
-
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">Family Income</label>
-    {editMode ? (
-      <input
-        type="number"
-        name="familyIncome"
-        value={student.familyIncome || ''}
-        onChange={handleInputChange}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moze-primary focus:border-moze-primary transition-colors"
-        placeholder="Enter family income"
-      />
-    ) : (
-      <p className="text-base text-gray-900">{student.familyIncome || admission?.familyIncome || 'N/A'}</p>
-    )}
-  </div>
-</div>
-              </div>
-            )}
-
-            {activeTab === 'courses' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-serif font-bold text-gray-800 mb-6">Current Courses</h2>
-
-                  {isLoadingSubjects ? (
-                    <div className="space-y-3">
-                      {Array(3).fill(0).map((_, i) => (
-                        <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-4 animate-pulse">
-                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : subjects.length > 0 ? (
-                    <ul className="space-y-3">
-                      {subjects.map((subject, idx) => (
-                        <li
-                          key={idx}
-                          className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm"
-                        >
-                          <p className="text-gray-800 font-semibold">
-                            {subject.name || 'Unnamed Subject'}
-                          </p>
-                          {subject.teacher && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              Teacher: {subject.teacherName || 'Not Assigned'}
-                            </p>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-gray-500">No subjects found for your department and year.</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'placements' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-xl font-serif font-bold text-gray-800">Placement Opportunities</h2>
-                      <p className="text-sm text-gray-500 mt-1">Explore upcoming recruitment drives and boost your career.</p>
-                    </div>
-                    <button 
-                      onClick={() => window.location.href = '/student/placement/opportunities'}
-                      className="text-sm font-bold text-moze-primary hover:underline flex items-center gap-1"
-                    >
-                      View All <ArrowRight size={14} />
-                    </button>
+              <div className="space-y-10">
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                  <h2 className="text-xl font-bold text-gray-800 mb-8">Family Information</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div>
+                       <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Mother's name</label>
+                       {editMode ? (
+                         <input
+                           type="text"
+                           name="motherName"
+                           value={student.motherName || ''}
+                           onChange={handleInputChange}
+                           className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                         />
+                       ) : <p className="font-bold">{student.motherName || '-'}</p>}
+                     </div>
                   </div>
+                </div>
 
-                  {isLoadingDrives ? (
-                    <div className="flex justify-center py-10">
-                      <Loader2 className="w-8 h-8 animate-spin text-moze-primary" />
-                    </div>
-                  ) : upcomingDrives.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {upcomingDrives.slice(0, 4).map((drive) => (
-                        <div key={drive._id} className="group bg-gray-50 border border-gray-100 rounded-2xl p-5 hover:border-moze-primary hover:bg-white transition-all cursor-pointer" onClick={() => window.location.href = '/student/placement/opportunities'}>
-                          <div className="flex justify-between items-start mb-4">
-                            <div className="w-10 h-10 bg-white rounded-xl border border-gray-100 flex items-center justify-center p-1.5 shadow-sm">
-                              {drive.companyId?.logoUrl ? (
-                                <img src={drive.companyId.logoUrl} alt={drive.companyId.name} className="max-w-full max-h-full object-contain" />
-                              ) : <Briefcase className="text-gray-400" size={20} />}
-                            </div>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${drive.status === 'Registration Open' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
-                              {drive.status}
-                            </span>
-                          </div>
-                          <h3 className="font-bold text-gray-900 group-hover:text-moze-primary transition-colors">{drive.jobTitle}</h3>
-                          <p className="text-xs text-gray-500 font-medium mb-3">{drive.companyId?.name}</p>
-                          
-                          <div className="flex items-center gap-4 text-xs">
-                            <div className="flex items-center gap-1 text-emerald-600 font-bold">
-                              <IndianRupee size={12} /> {drive.ctcPackage}
-                            </div>
-                            <div className="flex items-center gap-1 text-gray-500">
-                              <Calendar size={12} /> {new Date(drive.driveDate).toLocaleDateString('en-GB')}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                      <Briefcase className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-                      <p className="text-gray-500 text-sm">No upcoming placement drives at the moment.</p>
-                    </div>
-                  )}
-
-                  <div className="mt-8 p-4 bg-maroon-50/50 rounded-2xl border border-maroon-100 flex items-center justify-between">
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                  <h2 className="text-xl font-bold text-gray-800 mb-8">Emergency Contact</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                      <p className="text-sm font-bold text-gray-900">Track your progress</p>
-                      <p className="text-xs text-gray-600">Check the status of your submitted applications.</p>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-2">First Name</label>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          name="emergencyContact.firstName"
+                          value={student.emergencyContact?.firstName || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                        />
+                      ) : <p className="font-bold">{student.emergencyContact?.firstName || '-'}</p>}
                     </div>
-                    <button 
-                      onClick={() => window.location.href = '/student/placement/applications'}
-                      className="bg-moze-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-maroon-800 transition"
-                    >
-                      Go to Tracker
-                    </button>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Relationship</label>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          name="emergencyContact.relationship"
+                          value={student.emergencyContact?.relationship || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl outline-none"
+                        />
+                      ) : <p className="font-bold">{student.emergencyContact?.relationship || '-'}</p>}
+                    </div>
                   </div>
                 </div>
               </div>

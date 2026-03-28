@@ -489,6 +489,7 @@ const EnquiriesLeads = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [enquiries, setEnquiries] = useState([]);
+  const [admissions, setAdmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -529,21 +530,31 @@ const EnquiriesLeads = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   useEffect(() => {
-    const fetchEnquiries = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await fetch("/api/enquiry");
-        if (!res.ok) throw new Error("Failed to fetch enquiries");
-        const enquiriesData = await res.json();
+        const [enquiriesRes, admissionsRes] = await Promise.all([
+          fetch("/api/enquiry"),
+          fetch("/api/admission")
+        ]);
+
+        if (!enquiriesRes.ok || !admissionsRes.ok) throw new Error("Failed to fetch data");
+
+        const [enquiriesData, admissionsData] = await Promise.all([
+          enquiriesRes.json(),
+          admissionsRes.json()
+        ]);
+
         setEnquiries(enquiriesData);
+        setAdmissions(admissionsData.data || []);
       } catch (error) {
         setError(error.message);
-        console.error("Failed to fetch enquiries:", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchEnquiries();
+    fetchData();
   }, []);
 
   const getStatusColor = (status) => {
@@ -633,6 +644,26 @@ const EnquiriesLeads = () => {
     } catch (error) {
       console.error("Error assigning counselor:", error);
       throw error;
+    }
+  };
+
+  const handleUpdateAdmissionStatus = async (admissionId, newStatus) => {
+    try {
+      const res = await fetch(`/api/admission/${admissionId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update status");
+      
+      const result = await res.json();
+      
+      // Update local state
+      setAdmissions(prev => prev.map(a => a._id === admissionId ? result.data : a));
+      toast.success(`Application ${newStatus} successfully!`);
+    } catch (error) {
+      toast.error(`Error: ${error.message}`);
     }
   };
 
@@ -858,105 +889,139 @@ const EnquiriesLeads = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {currentItems.map((enquiry) => (
-                    <tr
-                      key={enquiry._id}
-                      className="hover:bg-gray-50/50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                            <span className="text-white font-semibold text-sm">
-                              {(
-                                enquiry.first?.[0] ||
-                                enquiry.email?.[0] ||
-                                "?"
-                              ).toUpperCase()}
-                            </span>
+                  {currentItems.map((enquiry) => {
+                    const admission = admissions.find(a => a.enquiryId === enquiry._id || a.email === enquiry.email);
+                    return (
+                      <tr
+                        key={enquiry._id}
+                        className="hover:bg-gray-50/50 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                              <span className="text-white font-semibold text-sm">
+                                {(
+                                  enquiry.first?.[0] ||
+                                  enquiry.email?.[0] ||
+                                  "?"
+                                ).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="group relative inline-block">
+                                {`${enquiry.first || ""} ${enquiry.middle || ""
+                                  } ${enquiry.last || ""}`
+                                  .trim()
+                                  .substring(0, 25) || "N/A"}
+                                {`${enquiry.first || ""} ${enquiry.middle || ""
+                                  } ${enquiry.last || ""}`.trim().length > 25 && (
+                                    <>
+                                      <span>...</span>
+                                      <span className="absolute z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap bottom-full left-1/2 transform -translate-x-1/2">
+                                        {`${enquiry.first || ""} ${enquiry.middle || ""
+                                          } ${enquiry.last || ""}`.trim()}
+                                      </span>
+                                    </>
+                                  )}
+                              </span>
+                              <p className="text-sm text-gray-600">
+                                {enquiry.email || "N/A"}
+                              </p>
+                            </div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4">
                           <div>
-                            <span className="group relative inline-block">
-                              {`${enquiry.first || ""} ${enquiry.middle || ""
-                                } ${enquiry.last || ""}`
-                                .trim()
-                                .substring(0, 25) || "N/A"}
-                              {`${enquiry.first || ""} ${enquiry.middle || ""
-                                } ${enquiry.last || ""}`.trim().length > 25 && (
-                                  <>
-                                    <span>...</span>
-                                    <span className="absolute z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap bottom-full left-1/2 transform -translate-x-1/2">
-                                      {`${enquiry.first || ""} ${enquiry.middle || ""
-                                        } ${enquiry.last || ""}`.trim()}
-                                    </span>
-                                  </>
-                                )}
+                            <p className="font-medium text-gray-900 mb-1">
+                              {enquiry.courseInterested || "N/A"}
+                            </p>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Phone className="w-3 h-3" />
+                              {enquiry.phone || "N/A"}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${getStatusColor(
+                                enquiry.status
+                              )}`}
+                            >
+                              {getStatusIcon(enquiry.status)}
+                              {enquiry.status || "Unknown"}
                             </span>
-                            <p className="text-sm text-gray-600">
-                              {enquiry.email || "N/A"}
+                            {admission && (
+                              <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md w-fit ${admission.status === 'inProcess' ? 'bg-amber-100 text-amber-700' :
+                                admission.status === 'verified' ? 'bg-green-100 text-green-700' :
+                                  admission.status === 'selected' ? 'bg-blue-100 text-blue-700' :
+                                    admission.status === 'enrolled' ? 'bg-indigo-100 text-indigo-700' :
+                                      'bg-gray-100 text-gray-600'
+                                }`}>
+                                Profile: {admission.status}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm">
+                            <p className="text-gray-900 font-medium">
+                              {enquiry.createdAt
+                                ? new Date(enquiry.createdAt).toLocaleDateString()
+                                : "N/A"}
+                            </p>
+                            <p className="text-gray-600">
+                              {enquiry.createdAt
+                                ? new Date(enquiry.createdAt).toLocaleTimeString(
+                                  [],
+                                  { hour: "2-digit", minute: "2-digit" }
+                                )
+                                : ""}
                             </p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-medium text-gray-900 mb-1">
-                            {enquiry.courseInterested || "N/A"}
-                          </p>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Phone className="w-3 h-3" />
-                            {enquiry.phone || "N/A"}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center gap-2">
+                            {admission && admission.status === 'inProcess' ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleUpdateAdmissionStatus(admission._id, 'verified')}
+                                  className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-all shadow-sm flex items-center gap-1"
+                                >
+                                  <CheckCircle className="w-3 h-3" /> Approve
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateAdmissionStatus(admission._id, 'rejected')}
+                                  className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-all shadow-sm flex items-center gap-1"
+                                >
+                                  <XCircle className="w-3 h-3" /> Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => openDetailsModal(enquiry._id)}
+                                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                {enquiry.status === "New" && (
+                                  <button
+                                    onClick={() => openAssignModal(enquiry._id)}
+                                    className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                    title="Assign Counselor"
+                                  >
+                                    <UserPlus className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </>
+                            )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${getStatusColor(
-                            enquiry.status
-                          )}`}
-                        >
-                          {getStatusIcon(enquiry.status)}
-                          {enquiry.status || "Unknown"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <p className="text-gray-900 font-medium">
-                            {enquiry.createdAt
-                              ? new Date(enquiry.createdAt).toLocaleDateString()
-                              : "N/A"}
-                          </p>
-                          <p className="text-gray-600">
-                            {enquiry.createdAt
-                              ? new Date(enquiry.createdAt).toLocaleTimeString(
-                                [],
-                                { hour: "2-digit", minute: "2-digit" }
-                              )
-                              : ""}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openDetailsModal(enquiry._id)}
-                            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          {enquiry.status === "New" && (
-                            <button
-                              onClick={() => openAssignModal(enquiry._id)}
-                              className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Assign Counselor"
-                            >
-                              <UserPlus className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

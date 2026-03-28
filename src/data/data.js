@@ -50,6 +50,7 @@ export const adminSidebarItems = [
   { id: "student-profiles", label: "Student Profiles", icon: GraduationCap },
   { id: "academic-configuration", label: "Academic Configuration", icon: BookOpen },
   { id: "courses", label: "CRM Management", icon: BookImage }, // ID 'courses' matches folder name to fix 404
+  { id: "my-attendance", label: "My Attendance", icon: CalendarClock },
   { id: "attendance-overview", label: "Attendance Overview", icon: CreditCard },
   { id: "feeStructure&payments", label: "Fee Structure & Payments", icon: FileText },
   { id: "copo/overview", label: "CO-PO Analytics", icon: Target },
@@ -59,6 +60,7 @@ export const adminSidebarItems = [
   { id: "placement/drives", label: "Placement Drives", icon: CalendarDays },
   { id: "placement/tracking", label: "Interview Tracker", icon: Users },
   { id: "talent/matrix", label: "Talent Matrix", icon: Award },
+  { id: "letter-generation", label: "Letter Generation", icon: FileText },
 ];
 
 export const ROUTE_PERMISSIONS = {
@@ -99,12 +101,14 @@ export const staffSidebarItems = [
   { id: "enquiry&leads", label: "Enquiries & Leads", icon: FileText },
   // { id: "followup-tracker", label: "Follow-up Tracker", icon: FileText },
   { id: "application-management", label: "Application Management", icon: BookImage },
-  // { id: "admission-test-scheduling", label: "Admission Test Scheduling", icon: BookImage },
-  // { id: "communication-logs", label: "Communication Logs (Email/SMS)", icon: BookImage },
+  { id: "my-attendance", label: "My Attendance", icon: CalendarClock },
+  { id: "library", label: "Library Management", icon: BookOpen },
+  { id: "letter-generation", label: "Letter Generation", icon: FileText },
 ];
 
 export const studentSidebarItems = [
   { id: "profile", label: "Profile", icon: UserCheck },
+  { id: "admission", label: "Admission Status", icon: BookImage },
   { id: "documents", label: "My Documents", icon: File },
   { id: "fees", label: "Fee Payment", icon: Wallet },
   { id: "attendance", label: "Attendance", icon: FileText },
@@ -112,6 +116,7 @@ export const studentSidebarItems = [
   { id: "timetable", label: "My Timetable", icon: CalendarClock },
   { id: "copo", label: "Outcome Achievement", icon: Target },
   { id: "placement/opportunities", label: "Placement Cell", icon: Briefcase },
+  { id: "library", label: "Library Dashboard", icon: BookOpen },
 ];
 
 //sample
@@ -122,8 +127,7 @@ export const teacherSidebarItems = [
   { id: "attendance-overview", label: "Attendance Overview", icon: CreditCard },
   { id: "course-plan", label: "Create Course Plan", icon: UserCheck },
   { id: "student-list", label: "Student List", icon: Users },
-  // {id: "upload-notes", label: "Upload Notes/Syllabus", icon: BookOpenCheck},
-  // {id: "marks", label: "Exam Marks", icon: FileCheck},
+  { id: "my-attendance", label: "My Attendance", icon: CalendarClock },
   { id: "exam", label: "All Exam", icon: File },
   { id: "copo", label: "CO-PO Management", icon: Target },
   { id: "talent", label: "Talent Corner", icon: Award },

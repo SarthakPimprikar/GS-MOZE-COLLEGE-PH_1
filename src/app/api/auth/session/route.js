@@ -104,22 +104,36 @@ export async function GET() {
 
     // ✅ Student logic
     if (role === 'student') {
-      console.log("sessisosofe = ", sessionToken)
+      console.log("Checking session for student role...");
+      // 1. Check legacy studentSchema
       const student = await studentSchema.findOne({ sessionToken });
-      console.log("student - ", student)
-      if (!student) {
-        return Response.json({ user: null }, { status: 404 });
+      if (student) {
+        return Response.json({
+          id: student._id.toString(),
+          fullName: student.fullName,
+          studentId: student.studentId,
+          email: student.email,
+          address: student.address,
+          role: 'student',
+        });
       }
 
-      return Response.json({
-        // no user wrapper for student to simplify SessionContext
-        id: student._id.toString(),
-        fullName: student.fullName,
-        studentId: student.studentId,
-        email: student.email,
-        address: student.address,
-        role: 'student',
-      });
+      // 2. Check userSchema for prospective students (Admission Phase)
+      const user = await userSchema.findOne({ sessionToken, role: "student" }).select('-password');
+      if (user) {
+        return Response.json({
+          user: {
+            id: user._id.toString(),
+            fullName: user.fullName,
+            username: user.fullName,
+            email: user.email,
+            role: 'student',
+            admissionId: user.admissionId
+          }
+        });
+      }
+
+      return Response.json({ user: null }, { status: 404 });
     }
 
     // ✅ Other roles (admin, staff, parents)
