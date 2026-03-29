@@ -89,7 +89,7 @@ export default function BenefitsSection() {
 
   if (loading) {
     return (
-      <section className="py-20 bg-white" name="benefits">
+    <section className="py-20 bg-white" id="benefits">
         <div className="container mx-auto px-6 md:px-16 text-center">
           <p className="text-gray-600">Loading benefits...</p>
         </div>
@@ -98,7 +98,7 @@ export default function BenefitsSection() {
   }
 
   return (
-    <section className="py-20 bg-white" name="benefits">
+    <section className="py-20 bg-white" id="benefits">
       <div className="container mx-auto px-6 md:px-16">
         {/* Top Pill Text */}
         <div className="flex justify-center mb-6">

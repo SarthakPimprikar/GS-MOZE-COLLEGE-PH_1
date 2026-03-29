@@ -46,7 +46,7 @@ export const adminSidebarItems = [
   { id: "roles", label: "Roles & Permissions", icon: Award },
   { id: "enquiry&leads", label: "Enquiries & Leads", icon: FileText },
   // { id: "application-leads", label: "Application and Leads", icon: UserCheck }, // Removed as per request
-  { id: "admission-applications", label: "Admission Applications", icon: BookImage },
+  // { id: "admission-applications", label: "Admission Applications", icon: BookImage },
   { id: "student-profiles", label: "Student Profiles", icon: GraduationCap },
   { id: "academic-configuration", label: "Academic Configuration", icon: BookOpen },
   { id: "courses", label: "CRM Management", icon: BookImage }, // ID 'courses' matches folder name to fix 404
@@ -69,7 +69,7 @@ export const ROUTE_PERMISSIONS = {
   "/admin/roles": "sidebar.roles",
   "/admin/enquiry": "sidebar.enquiry&leads",
   // "/admin/application-leads": "sidebar.application-leads",
-  "/admin/admission": "sidebar.admission-applications",
+  // "/admin/admission": "sidebar.admission-applications",
   "/admin/students": "sidebar.student-profiles",
   "/admin/academic": "sidebar.academic-configuration",
   "/admin/courses": "sidebar.courses", // Updated route to match folder

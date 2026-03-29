@@ -8,7 +8,7 @@ const TechnicalInstituteHero = () => {
   return (
     <section
       className="relative bg-moze-secondary text-gray-900 overflow-hidden pt-28 md:pt-36 pb-20 md:pb-32"
-      name="home"
+      id="home"
     >
       {/* Background Shapes */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-maroon-100 rounded-full blur-3xl opacity-50 -z-10 translate-x-1/3 -translate-y-1/3"></div>

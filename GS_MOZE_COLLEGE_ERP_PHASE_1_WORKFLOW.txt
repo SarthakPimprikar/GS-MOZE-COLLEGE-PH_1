@@ -1,0 +1,88 @@
+=========================================================
+GS MOZE COLLEGE OF ENGINEERING - ERP PHASE 1 WORKFLOW
+=========================================================
+
+This document outlines the institutional workflows and role-based
+permissions for the completed Attendance, Library, and Letter 
+Generation modules.
+
+---------------------------------------------------------
+1. ADMISSION LIFE-CYCLE
+---------------------------------------------------------
+PRIMARY ROLES: Student, Admin
+
+[A] STUDENT PHASE:
+- Student registers on the portal.
+- Fills the comprehensive admission form with academic and personal details.
+
+[B] ADMINISTRATIVE PHASE:
+- Admin views incoming applications in 'Enquiries & Leads'.
+- Admin verifies the Student's details.
+- Admin clicks the 'Approve' button next to the student's name.
+
+[C] SYSTEM RESPONSE:
+- Admission bar turns GREEN for the student.
+- Welcome Message: "Welcome to GS Moze College, you have been selected..."
+- Unique Student/Admission ID is generated and locked.
+
+---------------------------------------------------------
+2. LIBRARY MANAGEMENT SYSTEM
+---------------------------------------------------------
+PRIMARY ROLES: Librarian (Staff), Student
+
+[A] LIBRARIAN PHASE:
+- Librarian manages the book catalog (Add/Edit/Inventory).
+- Librarian issues books using 'Student Email ID' for search.
+- Librarian monitors 'Active Issues' for overdue book tracking.
+
+[B] STUDENT PHASE:
+- Student searches the 'Catalog' by title, author, or category.
+- Student finds shelf locations and availability.
+- Student tracks 'My Issued Books' for due dates and live fines.
+
+[C] SYSTEM LOGIC:
+- Borrowing Window: Fixed 7-day period.
+- Late Fee: ₹50 per day past the due date.
+- Fine is calculated automatically during the return process.
+- Book stock is updated in real-time upon issue/return.
+
+---------------------------------------------------------
+3. LETTER GENERATION & ARCHIVAL
+---------------------------------------------------------
+PRIMARY ROLES: Admin, Staff
+
+[A] ADMINISTRATIVE PHASE:
+- Admin configures HTML templates (Bonafide, LC, Offer Letter).
+- Admin/Staff chooses a template based on institutional needs.
+
+[B] ISSUANCE PHASE:
+- Staff searches for a recipient (Student/Teacher) by 'Official Email ID'.
+- System auto-populates dynamic placeholders (Name, ID, Branch, etc.).
+- Staff reviews a live A4-scaled preview of the document.
+
+[C] ARCHIVAL & COMPLIANCE:
+- Every letter is assigned a unique Serial Number (GSM/2026/0001).
+- Generated letters are permanently archived and available for re-print.
+- Digital records cannot be deleted, ensuring a secure institutional audit trail.
+
+---------------------------------------------------------
+4. ATTENDANCE & LEAVE MANAGEMENT
+---------------------------------------------------------
+PRIMARY ROLES: Teacher, Staff, Admin, HOD
+
+[A] RECORDING PHASE:
+- Staff/Teachers/HOD mark daily attendance via 'Mark My Attendance'.
+- Real-time attendance rate (%) is displayed on their personal dashboard.
+
+[B] LEAVE WORKFLOW:
+- User applies for leave using the digital form.
+- Admin views all pending leaves in the 'Attendance Overview' portal.
+- Admin selects 'Approve' or 'Reject' with real-time toast notifications.
+
+[C] ADMINISTRATIVE OVERSIGHT:
+- Admin monitors institutional attendance for all roles in 'Manage Users'.
+- Detailed attendance percent is visible when viewing specific profiles.
+
+=========================================================
+GS Moze College of Engineering ERP - Phase 1 Complete
+=========================================================

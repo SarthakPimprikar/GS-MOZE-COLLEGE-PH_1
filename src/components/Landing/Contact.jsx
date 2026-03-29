@@ -34,7 +34,7 @@ export default function ContactSection() {
   }, []);
 
   return (
-    <section className="py-20 bg-white" name="contacts">
+    <section className="py-20 bg-white" id="contacts">
       <div className="container mx-auto px-6 lg:px-20">
 
         {/* Title */}
