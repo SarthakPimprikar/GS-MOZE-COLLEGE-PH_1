@@ -29,7 +29,12 @@ const Layout = ({ children }) => {
       // Find if the current path matches any protected route prefix
       const requiredPermission = Object.entries(ROUTE_PERMISSIONS).find(([route, perm]) => currentPath.startsWith(route))?.[1];
 
-      if (requiredPermission && !currentPath.startsWith('/admin/copo') && !currentPath.startsWith('/admin/alumni') && !currentPath.startsWith('/admin/placement') && !currentPath.startsWith('/admin/talent')) {
+      if (requiredPermission && 
+          !currentPath.startsWith('/admin/copo') && 
+          !currentPath.startsWith('/admin/alumni') && 
+          !currentPath.startsWith('/admin/placement') && 
+          !currentPath.startsWith('/admin/talent') &&
+          !currentPath.startsWith('/admin/inventory')) {
         const userPerms = user.roleId?.permissions || [];
         if (!userPerms.includes(requiredPermission)) {
           console.warn(`Access denied to ${currentPath}. Missing: ${requiredPermission}`);
@@ -50,7 +55,8 @@ const Layout = ({ children }) => {
       item.id.includes("copo") || 
       item.id.includes("alumni") || 
       item.id.includes("placement") ||
-      item.id.includes("talent")
+      item.id.includes("talent") ||
+      item.id.includes("inventory")
     );
 
     // Inject Blogs for SuperAdmin ONLY (Bypassing permission system)

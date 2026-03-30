@@ -37,7 +37,8 @@ import {
   Target,
   Briefcase,
   Building2,
-  CalendarDays
+  CalendarDays,
+  Package
 } from "lucide-react";
 
 export const adminSidebarItems = [
@@ -61,6 +62,7 @@ export const adminSidebarItems = [
   { id: "placement/tracking", label: "Interview Tracker", icon: Users },
   { id: "talent/matrix", label: "Talent Matrix", icon: Award },
   { id: "letter-generation", label: "Letter Generation", icon: FileText },
+  { id: "inventory", label: "Inventory Management", icon: Package },
 ];
 
 export const ROUTE_PERMISSIONS = {
@@ -82,6 +84,7 @@ export const ROUTE_PERMISSIONS = {
   "/admin/placement/drives": "sidebar.placement/drives",
   "/admin/placement/tracking": "sidebar.placement/tracking",
   "/admin/talent/matrix": "sidebar.talent/matrix",
+  "/admin/inventory": "sidebar.inventory",
 };
 
 // Sidebar specifically for superadmin (starting with Benefits)
@@ -94,6 +97,8 @@ export const superadminSidebarItems = [
   { id: "placement/overview", label: "Placement Cell", icon: Briefcase },
   { id: "alumni", label: "Alumni Network", icon: GraduationCap },
   { id: "copo/overview", label: "CO-PO Analytics", icon: Target },
+  { id: "inventory", label: "Inventory Management", icon: Package },
+  { id: "blogs", label: "Blogs", icon: BookOpen },
 ];
 
 export const staffSidebarItems = [
@@ -104,6 +109,7 @@ export const staffSidebarItems = [
   { id: "my-attendance", label: "My Attendance", icon: CalendarClock },
   { id: "library", label: "Library Management", icon: BookOpen },
   { id: "letter-generation", label: "Letter Generation", icon: FileText },
+  { id: "inventory", label: "Inventory Tracking", icon: Package },
 ];
 
 export const studentSidebarItems = [

@@ -51,13 +51,7 @@ const Layout = ({ children }) => {
   }, [user, loading, router]);
 
   // --- Sidebar Configuration ---
-  const sidebarItems = React.useMemo(() => {
-    // Inject Blogs into superadmin sidebar
-    const items = [...superadminSidebarItems];
-    const { BookOpen } = require("lucide-react");
-    items.push({ id: "blogs", label: "Blogs", icon: BookOpen });
-    return items;
-  }, []);
+  const sidebarItems = superadminSidebarItems;
 
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
